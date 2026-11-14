@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desconfia.AI | A IA que desconfia por você</title>
+<meta name="description" content="Desconfia.AI lê mensagens com ofertas financeiras suspeitas, confere em fontes oficiais e explica, em linguagem simples, se há sinais de golpe e o que fazer. Feito para quem recebe ofertas pelo celular, principalmente pessoas idosas, e para as famílias que cuidam delas.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page: #eaf0f6;
+    --surface: #ffffff;
+    --ink: #13233a;
+    --muted: #4d5b6e;
+    --line: #c9d3de;
+    --mark: #ffe15a;
+    --risk: #b3122a;
+    --risk-bg: #fbe9ec;
+    --ok: #1d6b45;
+    --link: #1f4fa8;
+    --chat: #dde5ee;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+    font-size: 19px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--page);
+  }
+  a { color: var(--link); text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
+  p { margin: 0 0 1em; }
+  h1, h2, h3 { line-height: 1.15; margin: 0; }
+
+  .shell { max-width: 1120px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+
+  /* Topo */
+  .top { padding-top: 20px; padding-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .brand { font-weight: 700; font-size: 22px; letter-spacing: -0.01em; }
+  .event { font-size: 15px; color: var(--muted); }
+
+  /* Abertura */
+  .intro { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; padding-top: 40px; padding-bottom: 72px; }
+  .intro h1 { font-size: clamp(42px, 6vw, 68px); letter-spacing: -0.025em; max-width: 11ch; }
+  .intro .lede { font-size: 21px; margin-top: 24px; max-width: 34ch; }
+  .intro .who { color: var(--muted); max-width: 38ch; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .button {
+    display: inline-block; font-weight: 700; font-size: 18px; text-decoration: none;
+    padding: 14px 22px; border-radius: 10px; border: 2px solid var(--ink);
+  }
+  .button.primary { background: var(--ink); color: #fff; }
+  .button.plain { background: transparent; color: var(--ink); }
+
+  /* A mensagem marcada */
+  .reading { margin: 0; background: var(--surface); border-radius: 22px; padding: 22px; box-shadow: 0 1px 0 var(--line), 0 18px 40px -24px rgba(19, 35, 58, 0.35); }
+  .chat { background: var(--chat); border-radius: 14px; padding: 16px; }
+  .bubble, .chat-head { margin: 0; }
+  .chat-head { font-size: 15px; color: var(--muted); margin-bottom: 10px; }
+  .chat-head strong { color: var(--ink); }
+  .bubble { background: var(--surface); border-radius: 4px 14px 14px 14px; padding: 14px 16px; font-size: 18px; line-height: 1.7; }
+  .bubble .time { display: block; text-align: right; font-size: 13px; color: var(--muted); margin-top: 4px; }
+  mark {
+    background: linear-gradient(transparent 12%, var(--mark) 12%, var(--mark) 88%, transparent 88%);
+    background-size: 100% 100%; background-repeat: no-repeat;
+    color: inherit; padding: 0 2px;
+    animation: marcar 0.7s ease-out both;
+  }
+  mark:nth-of-type(1) { animation-delay: 0.3s; }
+  mark:nth-of-type(2) { animation-delay: 0.7s; }
+  mark:nth-of-type(3) { animation-delay: 1.1s; }
+  mark:nth-of-type(4) { animation-delay: 1.5s; }
+  @keyframes marcar { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
+  .ref {
+    display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--ink); color: #fff; font-size: 13px; font-weight: 700; line-height: 1;
+    vertical-align: 2px; margin-left: 3px;
+  }
+
+  .verdict { margin-top: 18px; }
+  .verdict-title { display: flex; align-items: center; gap: 10px; color: var(--risk); font-size: 24px; font-weight: 700; }
+  .verdict-title svg { flex: none; }
+  .notes { list-style: none; padding: 0; margin: 14px 0 0; }
+  .notes li { display: grid; grid-template-columns: 30px 1fr; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 17px; }
+  .notes .ref { margin: 3px 0 0; }
+  .todo { margin: 14px 0 0; padding: 14px 16px; background: var(--risk-bg); border-radius: 10px; font-size: 17px; }
+  .todo strong { color: var(--risk); }
+
+  /* Seções */
+  .band { background: var(--surface); }
+  .section { padding-top: 72px; padding-bottom: 72px; }
+  .section h2 { font-size: clamp(30px, 4vw, 42px); letter-spacing: -0.02em; max-width: 20ch; }
+  .section .sub { color: var(--muted); max-width: 60ch; margin-top: 14px; }
+  .split { display: grid; grid-template-columns: 5fr 7fr; gap: 56px; align-items: start; }
+
+  .checks { list-style: none; padding: 0; margin: 0; }
+  .checks li { padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .checks li:first-child { padding-top: 0; }
+  .checks h3 { font-size: 21px; margin-bottom: 4px; }
+  .checks p { margin: 0; color: var(--muted); }
+
+  .steps { counter-reset: passo; list-style: none; padding: 0; margin: 0; }
+  .steps li { counter-increment: passo; position: relative; padding: 0 0 22px 52px; }
+  .steps li::before {
+    content: counter(passo); position: absolute; left: 0; top: 0;
+    width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--ink);
+    display: grid; place-items: center; font-weight: 700; font-size: 17px;
+  }
+  .steps li:not(:last-child)::after { content: ""; position: absolute; left: 17px; top: 38px; bottom: 4px; width: 2px; background: var(--line); }
+  .steps strong { display: block; font-size: 20px; }
+  .steps span { color: var(--muted); }
+
+  .fact { font-size: clamp(22px, 2.6vw, 28px); line-height: 1.4; max-width: 34ch; margin: 0; }
+  .fact strong { background: linear-gradient(transparent 55%, var(--mark) 55%); }
+  .source { font-size: 15px; color: var(--muted); margin-top: 12px; }
+
+  .status { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 36px; }
+  .status h3 { font-size: 20px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .status ul { margin: 0; padding-left: 20px; }
+  .status li { margin-bottom: 6px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .dot.done { background: var(--ok); }
+  .dot.doing { background: transparent; border: 2px solid var(--ink); }
+
+  .promises { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 40px; margin-top: 32px; }
+  .promises p { margin: 0; padding: 16px 0; border-top: 2px solid var(--ink); }
+  .promises strong { display: block; font-size: 20px; margin-bottom: 2px; }
+
+  footer { padding-top: 40px; padding-bottom: 48px; font-size: 16px; color: var(--muted); }
+  footer p { margin: 0 0 6px; }
+
+  @media (max-width: 880px) {
+    body { font-size: 18px; }
+    .intro, .split, .status, .promises { grid-template-columns: 1fr; }
+    .intro { gap: 36px; padding-top: 16px; padding-bottom: 56px; }
+    .section { padding-top: 56px; padding-bottom: 56px; }
+    .split { gap: 28px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    mark { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="shell top">
+  <span class="brand">Desconfia.AI</span>
+  <span class="event">Projeto para o Hack Brasil 2026, trilha de Cibersegurança</span>
+</header>
+
+<main>
+  <section class="shell intro">
+    <div>
+      <h1>A IA que desconfia por você.</h1>
+      <p class="lede">Recebeu uma oferta boa demais para ser verdade? O Desconfia.AI lê a mensagem, confere em fontes oficiais e explica, em palavras simples, se há sinais de golpe e o que fazer agora.</p>
+      <p class="who">Feito para quem recebe ofertas de dinheiro pelo celular, principalmente pessoas idosas, e para as famílias que cuidam delas.</p>
+      <div class="actions">
+        <a class="button primary" href="#como-funciona">Ver como funciona</a>
+        <a class="button plain" href="https://github.com/emanuelmoretticosta-netizen/desconfia-ai">Ver o código no GitHub</a>
+      </div>
+    </div>
+
+    <figure class="reading" aria-label="Exemplo de mensagem de golpe analisada pelo Desconfia.AI">
+      <div class="chat">
+        <p class="chat-head"><strong>Número desconhecido</strong>, mensagem fictícia</p>
+        <p class="bubble">
+          URGENTE! Você tem R$ 1.847,32 no Valores a Receber do Banco Central. Para liberar, <mark>pague a taxa de R$ 49,90 via Pix</mark><span class="ref" aria-label="sinal 1">1</span> e informe <mark>seu CPF e o nome da sua mãe</mark><span class="ref" aria-label="sinal 2">2</span> em <mark>www.valores-receber-brasil.com</mark><span class="ref" aria-label="sinal 3">3</span>. <mark>Válido só hoje!</mark><span class="ref" aria-label="sinal 4">4</span>
+          <span class="time">10:42</span>
+        </p>
+      </div>
+      <figcaption class="verdict">
+        <div class="verdict-title">
+          <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 1 21h22L12 2Z" fill="currentColor"/><path d="M12 9v5M12 17.5v.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+          Risco alto. Não pague.
+        </div>
+        <ol class="notes">
+          <li><span class="ref">1</span><span>O Valores a Receber oficial é gratuito. Ninguém cobra taxa para liberar o dinheiro.</span></li>
+          <li><span class="ref">2</span><span>CPF e nome da mãe são usados para roubar a sua identidade.</span></li>
+          <li><span class="ref">3</span><span>Esse endereço não é um site do governo.</span></li>
+          <li><span class="ref">4</span><span>Pressa é a principal arma do golpista.</span></li>
+        </ol>
+        <p class="todo"><strong>O que fazer:</strong> não clique no link. Para consultar valores a receber, use só o site oficial do Banco Central.</p>
+      </figcaption>
+    </figure>
+  </section>
+
+  <div class="band">
+    <section class="shell section split">
+      <div>
+        <h2>Golpe chega todo dia pelo celular.</h2>
+      </div>
+      <div>
+        <p class="fact">Em um levantamento com 16 mil anúncios que citavam "empréstimo" nas redes da Meta, <strong>52% tinham indícios de fraude</strong>.</p>
+        <p class="source">Fonte: <a href="https://timesbrasil.com.br/brasil/meta-e-o-principal-canal-de-fraudes-financeiras-no-brasil-mostra-investigacao/">Projeto Brief, publicado pelo Times Brasil</a></p>
+        <p class="sub">Os golpistas usam nomes de programas reais, como Valores a Receber e Desenrola Brasil, e cobram uma "taxa de liberação" que não existe. Quem mais cai é quem tem menos costume com o celular. E quem já pagou, muitas vezes, não sabe que ainda dá para pedir o dinheiro de volta.</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="shell section split" id="como-funciona">
+    <div>
+      <h2>Provas, não achismo.</h2>
+      <p class="sub">A IA lê a mensagem e encontra quem está pedindo o dinheiro. Depois, cada conclusão é conferida em uma fonte oficial, e a fonte aparece no laudo.</p>
+    </div>
+    <ul class="checks">
+      <li><h3>Banco Central</h3><p>A empresa tem autorização para funcionar como instituição financeira?</p></li>
+      <li><h3>CVM</h3><p>A empresa ou a pessoa está proibida de oferecer investimentos?</p></li>
+      <li><h3>Receita Federal</h3><p>O CNPJ existe, está ativo e há quanto tempo?</p></li>
+      <li><h3>Regras dos programas oficiais</h3><p>A oferta contradiz o programa verdadeiro, como cobrar taxa onde não existe taxa?</p></li>
+    </ul>
+  </section>
+
+  <div class="band">
+    <section class="shell section split">
+      <div>
+        <h2>Já pagou? Ainda dá para agir.</h2>
+        <p class="sub">O Desconfia.AI não para no aviso. Ele mostra o caminho oficial para pedir o dinheiro de volta pelo MED, o Mecanismo Especial de Devolução do Pix. Quanto mais rápido, maior a chance.</p>
+      </div>
+      <ol class="steps">
+        <li><strong>Abra o app do seu banco</strong><span>Vá no extrato e toque no Pix que você fez para o golpista.</span></li>
+        <li><strong>Peça a contestação do Pix</strong><span>Escolha a opção de golpe ou fraude. O banco aciona o MED.</span></li>
+        <li><strong>Use o dossiê pronto</strong><span>O Desconfia.AI organiza as provas da mensagem para o banco e para a denúncia.</span></li>
+      </ol>
+    </section>
+  </div>
+
+  <section class="shell section">
+    <h2>Nossos compromissos</h2>
+    <div class="promises">
+      <p><strong>Nunca dizemos "seguro".</strong>Golpes novos podem não ter registro em lugar nenhum. Mostramos os sinais e orientamos a confirmar pelo canal oficial.</p>
+      <p><strong>Toda conclusão tem fonte.</strong>Você vê de onde veio cada informação, não só a opinião de uma IA.</p>
+      <p><strong>Ensinar a reconhecer.</strong>O laudo explica por que algo é suspeito, para a pessoa perceber o padrão da próxima vez.</p>
+      <p><strong>Seus dados não ficam com a gente.</strong>Não guardamos as mensagens nem os dados de quem consulta.</p>
+    </div>
+  </section>
+
+  <div class="band">
+    <section class="shell section">
+      <h2>Onde o projeto está agora</h2>
+      <p class="sub">Estamos construindo o Desconfia.AI durante o Hack Brasil, até 30 de novembro de 2026.</p>
+      <div class="status">
+        <div>
+          <h3><span class="dot done" aria-hidden="true"></span>Já funciona</h3>
+          <ul>
+            <li>Leitura da mensagem com IA</li>
+            <li>Identificação de chave Pix, site, empresa e programa citado</li>
+            <li>Classificação dos sinais de golpe e do nível de risco</li>
+          </ul>
+        </div>
+        <div>
+          <h3><span class="dot doing" aria-hidden="true"></span>Em construção</h3>
+          <ul>
+            <li>Consulta ao Banco Central, à CVM e ao CNPJ</li>
+            <li>Laudo com fontes e modo "já paguei"</li>
+            <li>Envio de print da conversa</li>
+            <li>Encaminhar a mensagem direto pelo WhatsApp</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="shell">
+  <p>Feito por Emanuel Moretti Costa e Maria Clara de Andrade e Silva.</p>
+  <p>Código aberto no <a href="https://github.com/emanuelmoretticosta-netizen/desconfia-ai">GitHub</a>. O Desconfia.AI não substitui a orientação do seu banco ou dos órgãos oficiais.</p>
+</footer>
+
+</body>
+</html>
