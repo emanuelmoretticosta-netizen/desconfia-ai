@@ -62,9 +62,10 @@ Regras:
 - Nunca diga que algo é seguro nem que é golpe com certeza. Fale em sinais e nível de risco.
 - "quem_diz_ser" NÃO é quem recebe o dinheiro. Se a mensagem diz ser do Banco Central mas
   pede Pix para outra chave, o Banco Central vai em "quem_diz_ser".
-- Só aponte sinais que aparecem de fato na mensagem. Usar e-mail como chave Pix não é
-  suspeito por si só; suspeito é um órgão do governo receber em e-mail pessoal ou em nome
-  de terceiros.
+- Só aponte sinais que aparecem de fato na mensagem.
+- E-mail, telefone e CPF são tipos comuns de chave Pix. Nunca diga, nem nos sinais nem na
+  explicação, que usar e-mail ou telefone como chave Pix é suspeito. O que pode ser suspeito
+  é um órgão do governo ou um banco pedir pagamento para a conta de uma pessoa comum.
 - Se não encontrar sinais, use risco "baixo", deixe "sinais" vazio e oriente a confirmar
   pelo canal oficial antes de pagar qualquer coisa.
 """
