@@ -4,8 +4,10 @@
 # Para rodar no computador (na pasta do projeto):  streamlit run app.py
 # No Streamlit Community Cloud, a chave da OpenAI fica em Settings > Secrets.
 
+import hashlib
 import html
 import os
+from pathlib import Path
 from datetime import date
 
 import streamlit as st
@@ -71,8 +73,16 @@ def e(texto):
     return html.escape(str(texto))
 
 
+def versao_do_codigo():
+    """Muda sempre que a análise muda, para o app não mostrar resultado antigo guardado."""
+    soma = hashlib.md5()
+    for nome in ("analise.py", "verificacoes.py"):
+        soma.update(Path(__file__).with_name(nome).read_bytes())
+    return soma.hexdigest()
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
-def analisar_exemplo(texto):
+def analisar_exemplo(texto, versao):
     """Os exemplos são sempre iguais: guardamos o resultado para economizar créditos."""
     return analisar(texto)
 
@@ -148,7 +158,7 @@ if analisar_agora:
     else:
         try:
             with st.spinner("Analisando a mensagem..."):
-                ficha = analisar_exemplo(texto) if texto in EXEMPLOS else analisar(texto)
+                ficha = analisar_exemplo(texto, versao_do_codigo()) if texto in EXEMPLOS else analisar(texto)
             st.session_state.usos = usos + 1
             if texto not in EXEMPLOS:
                 contador_do_dia()["total"] += 1
