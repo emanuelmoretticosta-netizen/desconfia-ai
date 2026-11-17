@@ -17,6 +17,8 @@ import re
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from verificacoes import consultar_sites, sinais_dos_sites
+
 load_dotenv()  # lê a chave do arquivo .env (que NUNCA vai para o GitHub)
 MODELO = os.getenv("MODELO", "gpt-4o-mini")
 
@@ -157,6 +159,16 @@ def checar_regras(texto, sites):
     return sinais
 
 
+def normalizar(texto):
+    return re.sub(r"\s+", " ", texto or "").strip().lower()
+
+
+def trecho_existe(trecho, mensagem):
+    """Confere se o trecho citado pela IA está mesmo na mensagem."""
+    limpo = normalizar(trecho).strip(" \"'“”‘’.,;:!?…")
+    return bool(limpo) and limpo in normalizar(mensagem)
+
+
 def analisar(mensagem):
     """Analisa uma mensagem e devolve um dicionário com o resultado."""
     resposta = obter_cliente().chat.completions.create(
@@ -173,6 +185,11 @@ def analisar(mensagem):
     except json.JSONDecodeError:
         ficha = {}
 
+    # A IA às vezes "cita" um trecho que não está na mensagem: nesse caso, tiramos o trecho
+    for s in ficha.get("sinais") or []:
+        if isinstance(s, dict) and s.get("trecho") and not trecho_existe(s["trecho"], mensagem):
+            s["trecho"] = None
+
     # Junta os sites que a IA achou com os que as regras acham direto no texto
     sites = {limpar_site(s) for s in ficha.get("sites") or []} | sites_do_texto(mensagem)
     sites.discard(None)
@@ -184,6 +201,10 @@ def analisar(mensagem):
         risco_ia = "medio"
     sinais_regras = checar_regras(mensagem, sites)
 
+    # Consulta no registro oficial de domínios há quanto tempo cada site existe
+    verificacoes = consultar_sites(sorted(sites), ignorar=ENCURTADORES)
+    sinais_regras += sinais_dos_sites(verificacoes)
+
     risco_final = risco_ia
     for regra in sinais_regras:
         if NIVEIS.index(regra["risco"]) > NIVEIS.index(risco_final):
@@ -192,6 +213,7 @@ def analisar(mensagem):
     ficha["nivel_de_risco_ia"] = risco_ia
     ficha["nivel_de_risco"] = risco_final
     ficha["sinais_regras"] = sinais_regras
+    ficha["verificacoes"] = verificacoes
     return ficha
 
 
@@ -236,6 +258,8 @@ def mostrar(titulo, ficha):
     for item in juntar_sinais(ficha):
         trecho = f'  [trecho: "{item["trecho"]}"]' if item["trecho"] else ""
         print(f"  - {item['sinal']}{trecho}")
+    for v in ficha.get("verificacoes") or []:
+        print(f"Consulta oficial: {v['site']} -> {v['situacao']}, registrado em {v['registrado_em']} ({v['fonte']})")
     print(f"Explicação: {ficha.get('explicacao_simples')}")
     print(f"O que fazer: {ficha.get('o_que_fazer')}")
     print()

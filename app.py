@@ -20,6 +20,7 @@ if not os.getenv("OPENAI_API_KEY"):
         pass
 
 from analise import EXEMPLO_GOLPE, EXEMPLO_LEGITIMO, analisar, juntar_sinais  # noqa: E402
+from verificacoes import texto_dos_dias  # noqa: E402
 
 MAX_CARACTERES = 3000   # mensagens maiores são cortadas, para proteger os créditos
 MAX_ANALISES = 15       # limite de análises por visita, contra abuso da demo
@@ -43,6 +44,7 @@ st.markdown(
       .sinal { padding: 12px 0; border-bottom: 1px solid #c9d3de; }
       .sinal:last-child { border-bottom: none; }
       .trecho { display: block; margin-top: 4px; color: #4d5b6e; font-size: 0.95rem; }
+      .trecho a { color: #1f4fa8; }
       .trecho mark { background: #ffe15a; padding: 0 3px; color: #13233a; }
       .fazer { background: #13233a; color: #ffffff; border-radius: 14px; padding: 16px 20px; margin: 18px 0; }
       .fazer strong { display: block; font-size: 1.15rem; margin-bottom: 4px; }
@@ -87,6 +89,21 @@ def pode_analisar_hoje():
     if contador["dia"] != hoje:
         contador["dia"], contador["total"] = hoje, 0
     return contador["total"] < MAX_POR_DIA
+
+
+def data_br(iso):
+    ano, mes, dia = iso.split("-")
+    return f"{dia}/{mes}/{ano}"
+
+
+def texto_da_consulta(v):
+    if v["situacao"] == "registrado" and v["dias"] is not None:
+        return f"registrado em {data_br(v['registrado_em'])}, há {texto_dos_dias(v['dias'])}."
+    if v["situacao"] == "registrado":
+        return "está registrado, mas o registro não informa a data."
+    if v["situacao"] == "nao_registrado":
+        return "não está registrado. Ninguém é dono desse endereço."
+    return "não conseguimos consultar o registro agora."
 
 
 def usar_exemplo(texto):
@@ -169,6 +186,19 @@ if ficha:
             f'<div class="fazer"><strong>O que fazer agora</strong>{e(ficha["o_que_fazer"])}</div>',
             unsafe_allow_html=True,
         )
+
+    verificacoes = ficha.get("verificacoes") or []
+    if verificacoes:
+        st.subheader("O que conferimos em fonte oficial")
+        partes = []
+        for v in verificacoes:
+            partes.append(
+                f'<div class="sinal"><strong>{e(v["site"])}</strong>: {e(texto_da_consulta(v))}'
+                f'<span class="trecho">Fonte: <a href="{e(v["link"])}" target="_blank" rel="noopener">'
+                f'{e(v["fonte"])}</a></span></div>'
+            )
+        st.markdown("".join(partes), unsafe_allow_html=True)
+        st.caption("Um site antigo não quer dizer que seja confiável: golpistas também usam sites invadidos ou conhecidos.")
 
     encontrados = [
         ("Diz ser", ficha.get("quem_diz_ser")),
