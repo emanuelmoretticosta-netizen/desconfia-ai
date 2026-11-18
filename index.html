@@ -160,8 +160,8 @@
       <p class="lede">Recebeu uma oferta boa demais para ser verdade? O Desconfia.AI lê a mensagem, confere em fontes oficiais e explica, em palavras simples, se há sinais de golpe e o que fazer agora.</p>
       <p class="who">Feito para quem recebe ofertas de dinheiro pelo celular, principalmente pessoas idosas, e para as famílias que cuidam delas.</p>
       <div class="actions">
-        <a class="button primary" href="#como-funciona">Ver como funciona</a>
-        <a class="button plain" href="https://github.com/emanuelmoretticosta-netizen/desconfia-ai">Ver o código no GitHub</a>
+        <a class="button primary" href="https://desconfia-ai.streamlit.app">Testar agora</a>
+        <a class="button plain" href="#como-funciona">Ver como funciona</a>
       </div>
     </div>
 
@@ -205,13 +205,13 @@
   <section class="shell section split" id="como-funciona">
     <div>
       <h2>Provas, não achismo.</h2>
-      <p class="sub">A IA lê a mensagem e encontra quem está pedindo o dinheiro. Depois, cada conclusão é conferida em uma fonte oficial, e a fonte aparece no laudo.</p>
+      <p class="sub">A IA lê a mensagem e encontra quem está pedindo o dinheiro. Regras fixas, que a IA não consegue desligar, conferem os sinais clássicos de golpe. E o que dá para checar em fonte oficial aparece no laudo, com a fonte.</p>
     </div>
     <ul class="checks">
-      <li><h3>Banco Central</h3><p>A empresa tem autorização para funcionar como instituição financeira?</p></li>
-      <li><h3>CVM</h3><p>A empresa ou a pessoa está proibida de oferecer investimentos?</p></li>
-      <li><h3>Receita Federal</h3><p>O CNPJ existe, está ativo e há quanto tempo?</p></li>
-      <li><h3>Regras dos programas oficiais</h3><p>A oferta contradiz o programa verdadeiro, como cobrar taxa onde não existe taxa?</p></li>
+      <li><h3>Registro oficial de domínios</h3><p>Há quanto tempo o site da mensagem existe? Site criado há poucos dias, ou que nem está registrado, é sinal forte de golpe.</p></li>
+      <li><h3>Regras dos programas oficiais</h3><p>A oferta contradiz o programa verdadeiro, como cobrar taxa onde não existe taxa ou usar um site que não termina em .gov.br?</p></li>
+      <li><h3>Banco Central (em breve)</h3><p>A instituição citada tem autorização para funcionar? O site é um dos endereços verificados?</p></li>
+      <li><h3>Os golpes mais comuns (em breve)</h3><p>Os 8 tipos de golpe mais relatados, cada um com a orientação oficial da Febraban, do Banco Central ou do gov.br.</p></li>
     </ul>
   </section>
 
@@ -224,7 +224,7 @@
       <ol class="steps">
         <li><strong>Abra o app do seu banco</strong><span>Vá no extrato e toque no Pix que você fez para o golpista.</span></li>
         <li><strong>Peça a contestação do Pix</strong><span>Escolha a opção de golpe ou fraude. O banco aciona o MED.</span></li>
-        <li><strong>Use o dossiê pronto</strong><span>O Desconfia.AI organiza as provas da mensagem para o banco e para a denúncia.</span></li>
+        <li><strong>Guarde as provas</strong><span>Prints da conversa, a chave Pix e o comprovante. Em breve o Desconfia.AI organiza isso para o banco e para a denúncia.</span></li>
       </ol>
     </section>
   </div>
@@ -247,18 +247,20 @@
         <div>
           <h3><span class="dot done" aria-hidden="true"></span>Já funciona</h3>
           <ul>
-            <li>Leitura da mensagem com IA</li>
-            <li>Identificação de chave Pix, site, empresa e programa citado</li>
-            <li>Classificação dos sinais de golpe e do nível de risco</li>
+            <li><a href="https://desconfia-ai.streamlit.app">App no ar</a>: cole a mensagem ou conte o que aconteceu</li>
+            <li>Sinais de golpe explicados, com o trecho da mensagem marcado</li>
+            <li>Idade do site conferida no registro oficial de domínios</li>
+            <li>Regras fixas que a IA não consegue desligar, contra mensagens que tentam enganá-la</li>
+            <li>Protótipo no WhatsApp: encaminhe a mensagem e receba a análise (em teste)</li>
           </ul>
         </div>
         <div>
           <h3><span class="dot doing" aria-hidden="true"></span>Em construção</h3>
           <ul>
-            <li>Consulta ao Banco Central, à CVM e ao CNPJ</li>
-            <li>Laudo com fontes e modo "já paguei"</li>
+            <li>Consulta ao Banco Central</li>
+            <li>Os 8 golpes mais comuns, com fonte oficial no laudo</li>
+            <li>Modo "já paguei", com o passo a passo do MED</li>
             <li>Envio de print da conversa</li>
-            <li>Encaminhar a mensagem direto pelo WhatsApp</li>
           </ul>
         </div>
       </div>
