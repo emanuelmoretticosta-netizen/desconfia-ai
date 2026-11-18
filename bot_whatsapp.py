@@ -3,6 +3,7 @@
 #   /webhook  WhatsApp Cloud API da Meta (exige empresa verificada para entregar)
 #   /twilio   Sandbox de WhatsApp do Twilio (para testes e para o vídeo)
 #   /telegram Bot do Telegram (funciona sem verificação de empresa)
+#   /d360/... Sandbox de WhatsApp da 360dialog (número brasileiro, sem conta, 25 mensagens)
 #
 # A pessoa encaminha a mensagem suspeita para o número do Desconfia.AI e recebe
 # a análise ali mesmo. Usa a mesma análise do app (analise.py).
@@ -21,6 +22,8 @@
 #   TELEGRAM_TOKEN          token do bot, dado pelo @BotFather
 #   TELEGRAM_SECRET         uma senha que nós inventamos: o Telegram a envia em cada aviso
 #   TELEGRAM_WEBHOOK_URL    opcional; padrão https://desconfia-ai.onrender.com/telegram
+#   D360_API_KEY            chave do sandbox da 360dialog (chega no WhatsApp ao mandar START)
+#   D360_SECRET             uma senha que nós inventamos: vai no endereço do webhook
 
 import base64
 import hashlib
@@ -339,6 +342,75 @@ def receber_telegram():
 
 
 threading.Thread(target=configurar_telegram, daemon=True).start()
+
+
+# ---------- 360dialog (sandbox) ----------
+
+URL_D360 = "https://waba-sandbox.360dialog.io/v1"
+
+
+def _d360(caminho, dados):
+    pedido = urllib.request.Request(f"{URL_D360}/{caminho}", data=json.dumps(dados).encode(), method="POST",
+                                    headers={"Content-Type": "application/json",
+                                             "D360-API-KEY": os.getenv("D360_API_KEY", "")})
+    with urllib.request.urlopen(pedido, timeout=15) as resposta:
+        return resposta.status
+
+
+def enviar_d360(destino, texto):
+    campo = "to" if str(destino).isdigit() else "recipient"   # número ou identificação da 360dialog
+    try:
+        status = _d360("messages", {"messaging_product": "whatsapp", "recipient_type": "individual",
+                                    campo: destino, "type": "text", "text": {"body": texto}})
+        print(f"[d360 envio] ok para ...{str(destino)[-4:]}: {status}", flush=True)
+    except urllib.error.HTTPError as erro:
+        print(f"[d360 envio] ERRO {erro.code}: {erro.read().decode(errors='replace')[:300]}", flush=True)
+    except Exception as erro:
+        print(f"[d360 envio] ERRO: {erro}", flush=True)
+
+
+def configurar_d360():
+    """Cadastra o nosso endereço no sandbox da 360dialog (roda quando o servidor liga)."""
+    if not os.getenv("D360_API_KEY") or not os.getenv("D360_SECRET"):
+        return
+    url = f"https://desconfia-ai.onrender.com/d360/{os.getenv('D360_SECRET')}"
+    try:
+        print(f"[d360] webhook configurado: {_d360('configs/webhook', {'url': url})}", flush=True)
+    except urllib.error.HTTPError as erro:
+        print(f"[d360] ERRO ao configurar o webhook {erro.code}: {erro.read().decode(errors='replace')[:300]}", flush=True)
+    except Exception as erro:
+        print(f"[d360] ERRO ao configurar o webhook: {erro}", flush=True)
+
+
+@app.post("/d360/<segredo>")
+def receber_d360(segredo):
+    esperado = os.getenv("D360_SECRET", "")
+    if not esperado or not hmac.compare_digest(segredo, esperado):
+        return "segredo inválido", 403
+    dados = request.get_json(silent=True) or {}
+    for entrada in dados.get("entry", []):
+        for mudanca in entrada.get("changes", []):
+            valor = mudanca.get("value", {})
+            for status in valor.get("statuses", []):
+                destino = str(status.get("recipient_id") or status.get("recipient_user_id") or "")
+                print(f"[d360 status] ...{destino[-4:]}: {status.get('status')} "
+                      f"{json.dumps(status.get('errors', []), ensure_ascii=False)}", flush=True)
+            for msg in valor.get("messages", []):
+                if not primeira_vez(f"d360{msg.get('id')}"):
+                    continue
+                remetente = str(msg.get("from") or msg.get("from_user_id") or "")
+                if not remetente:
+                    continue
+                print(f"[d360 mensagem] de ...{remetente[-4:]} tipo {msg.get('type')}", flush=True)
+                if msg.get("type") == "text":
+                    texto = (msg.get("text") or {}).get("body", "")
+                    threading.Thread(target=responder, args=(remetente, texto, enviar_d360), daemon=True).start()
+                else:
+                    threading.Thread(target=enviar_d360, args=(remetente, SO_TEXTO), daemon=True).start()
+    return "ok", 200
+
+
+threading.Thread(target=configurar_d360, daemon=True).start()
 
 
 @app.post("/twilio")
