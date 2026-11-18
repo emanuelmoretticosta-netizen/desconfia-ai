@@ -1,5 +1,8 @@
 # bot_whatsapp.py
-# Bot do Desconfia.AI no WhatsApp (WhatsApp Cloud API da Meta).
+# Bot do Desconfia.AI no WhatsApp. Funciona por dois caminhos:
+#   /webhook  WhatsApp Cloud API da Meta (exige empresa verificada para entregar)
+#   /twilio   Sandbox de WhatsApp do Twilio (para testes e para o vídeo)
+#   /telegram Bot do Telegram (funciona sem verificação de empresa)
 #
 # A pessoa encaminha a mensagem suspeita para o número do Desconfia.AI e recebe
 # a análise ali mesmo. Usa a mesma análise do app (analise.py).
@@ -12,13 +15,24 @@
 #   WHATSAPP_PHONE_ID       identificação do número de telefone (painel da Meta)
 #   WHATSAPP_VERIFY_TOKEN   uma senha que nós inventamos, igual à cadastrada na Meta
 #   META_APP_SECRET         chave secreta do app (Configurações do app > Básico)
+#   TWILIO_ACCOUNT_SID      Account SID do Twilio (página inicial do Console)
+#   TWILIO_AUTH_TOKEN       Auth Token do Twilio (página inicial do Console)
+#   TWILIO_WHATSAPP_FROM    número do sandbox, ex.: whatsapp:+14155238886
+#   TELEGRAM_TOKEN          token do bot, dado pelo @BotFather
+#   TELEGRAM_SECRET         uma senha que nós inventamos: o Telegram a envia em cada aviso
+#   TELEGRAM_WEBHOOK_URL    opcional; padrão https://desconfia-ai.onrender.com/telegram
 
+import base64
 import hashlib
+import html
 import hmac
 import json
 import os
+import re
 import threading
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import OrderedDict
 from datetime import date
@@ -157,21 +171,77 @@ def enviar_texto(numero, texto):
         print(f"[envio] ERRO: {erro}", flush=True)
 
 
-def responder(numero, texto):
-    """Roda em segundo plano, para a Meta receber o 'ok' na hora."""
+def responder(numero, texto, enviar=None):
+    """Roda em segundo plano, para o WhatsApp receber o 'ok' na hora."""
+    enviar = enviar or enviar_texto
     texto = texto.strip()
     if len(texto) < 20:
-        enviar_texto(numero, BOAS_VINDAS)
+        enviar(numero, BOAS_VINDAS)
         return
     if not pode_analisar(numero):
-        enviar_texto(numero, "Você chegou ao limite de análises de hoje. Tente de novo amanhã.")
+        enviar(numero, "Você chegou ao limite de análises de hoje. Tente de novo amanhã.")
         return
     try:
         ficha = analisar(texto[:MAX_CARACTERES])
-        enviar_texto(numero, montar_resposta(ficha))
+        enviar(numero, montar_resposta(ficha))
     except Exception as erro:
         print(f"[análise] ERRO: {erro}", flush=True)
-        enviar_texto(numero, "Não consegui analisar agora. Tente de novo em alguns segundos.")
+        enviar(numero, "Não consegui analisar agora. Tente de novo em alguns segundos.")
+
+
+# ---------- Twilio ----------
+
+def assinatura_twilio_valida(url, campos, assinatura):
+    """Confere se o aviso veio mesmo do Twilio (assinatura com o Auth Token)."""
+    token = os.getenv("TWILIO_AUTH_TOKEN", "")
+    if not token or not assinatura:
+        return False
+    texto = url + "".join(k + campos[k] for k in sorted(campos))
+    esperado = base64.b64encode(hmac.new(token.encode(), texto.encode(), hashlib.sha1).digest()).decode()
+    return hmac.compare_digest(esperado, assinatura)
+
+
+def partes_da_mensagem(texto, limite=1500):
+    """O WhatsApp pelo Twilio aceita até 1600 caracteres por mensagem: dividimos por parágrafo."""
+    partes, atual = [], ""
+    for paragrafo in texto.split("\n\n"):
+        candidato = f"{atual}\n\n{paragrafo}" if atual else paragrafo
+        if len(candidato) <= limite:
+            atual = candidato
+        else:
+            if atual:
+                partes.append(atual)
+            atual = paragrafo[:limite]
+    if atual:
+        partes.append(atual)
+    return partes
+
+
+def enviar_twilio(numero, texto):
+    sid = os.getenv("TWILIO_ACCOUNT_SID", "")
+    url = f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json"
+    chave = base64.b64encode(f"{sid}:{os.getenv('TWILIO_AUTH_TOKEN', '')}".encode()).decode()
+    for i, parte in enumerate(partes_da_mensagem(texto)):
+        if i:
+            time.sleep(3)  # o sandbox envia no máximo uma mensagem a cada 3 segundos
+        corpo = urllib.parse.urlencode({
+            "From": os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886"),
+            "To": numero,
+            "Body": parte,
+        }).encode()
+        pedido = urllib.request.Request(url, data=corpo, method="POST", headers={
+            "Authorization": f"Basic {chave}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        })
+        try:
+            with urllib.request.urlopen(pedido, timeout=15) as resposta:
+                print(f"[twilio envio] ok para ...{numero[-4:]}: {resposta.status}", flush=True)
+        except urllib.error.HTTPError as erro:
+            print(f"[twilio envio] ERRO {erro.code}: {erro.read().decode(errors='replace')[:500]}", flush=True)
+            return
+        except Exception as erro:
+            print(f"[twilio envio] ERRO: {erro}", flush=True)
+            return
 
 
 # ---------- Rotas ----------
@@ -188,6 +258,109 @@ def verificar_webhook():
             and request.args.get("hub.verify_token") == os.getenv("WHATSAPP_VERIFY_TOKEN")):
         return request.args.get("hub.challenge", ""), 200
     return "token inválido", 403
+
+
+# ---------- Telegram ----------
+
+def _telegram(metodo, dados):
+    url = f"https://api.telegram.org/bot{os.getenv('TELEGRAM_TOKEN', '')}/{metodo}"
+    pedido = urllib.request.Request(url, data=json.dumps(dados).encode(), method="POST",
+                                    headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(pedido, timeout=15) as resposta:
+        return json.loads(resposta.read().decode())
+
+
+def para_html(texto):
+    """Troca o *negrito* e o _itálico_ do WhatsApp pelas marcas que o Telegram entende."""
+    texto = html.escape(texto, quote=False)
+    texto = re.sub(r"\*([^*\n]+)\*", r"<b>\1</b>", texto)
+    return re.sub(r"(?<!\w)_([^_\n]+)_(?!\w)", r"<i>\1</i>", texto)
+
+
+def enviar_telegram(chat_id, texto):
+    try:
+        _telegram("sendMessage", {"chat_id": chat_id, "text": para_html(texto), "parse_mode": "HTML",
+                                  "disable_web_page_preview": True})
+        print(f"[telegram envio] ok para ...{str(chat_id)[-4:]}", flush=True)
+    except urllib.error.HTTPError as erro:
+        print(f"[telegram envio] ERRO {erro.code}: {erro.read().decode(errors='replace')[:300]}", flush=True)
+        try:  # se a formatação der problema, manda sem formatação
+            _telegram("sendMessage", {"chat_id": chat_id, "text": texto, "disable_web_page_preview": True})
+        except Exception as erro2:
+            print(f"[telegram envio] ERRO de novo: {erro2}", flush=True)
+    except Exception as erro:
+        print(f"[telegram envio] ERRO: {erro}", flush=True)
+
+
+def responder_telegram(chat_id, texto):
+    try:
+        _telegram("sendChatAction", {"chat_id": chat_id, "action": "typing"})
+    except Exception:
+        pass
+    responder(chat_id, texto, enviar_telegram)
+
+
+def configurar_telegram():
+    """Avisa o Telegram para onde mandar as mensagens (roda quando o servidor liga)."""
+    if not os.getenv("TELEGRAM_TOKEN") or not os.getenv("TELEGRAM_SECRET"):
+        return
+    try:
+        resposta = _telegram("setWebhook", {
+            "url": os.getenv("TELEGRAM_WEBHOOK_URL", "https://desconfia-ai.onrender.com/telegram"),
+            "secret_token": os.getenv("TELEGRAM_SECRET"),
+            "allowed_updates": ["message"],
+        })
+        print(f"[telegram] webhook configurado: {resposta.get('ok')}", flush=True)
+    except Exception as erro:
+        print(f"[telegram] ERRO ao configurar o webhook: {erro}", flush=True)
+
+
+@app.post("/telegram")
+def receber_telegram():
+    segredo = os.getenv("TELEGRAM_SECRET", "")
+    if not segredo or not hmac.compare_digest(
+            request.headers.get("X-Telegram-Bot-Api-Secret-Token", ""), segredo):
+        return "segredo inválido", 403
+
+    dados = request.get_json(silent=True) or {}
+    if not primeira_vez(f"tg{dados.get('update_id')}"):
+        return "ok", 200
+    msg = dados.get("message") or {}
+    chat_id = (msg.get("chat") or {}).get("id")
+    if not chat_id:
+        return "ok", 200
+    texto = msg.get("text") or msg.get("caption") or ""
+    print(f"[telegram mensagem] de ...{str(chat_id)[-4:]} encaminhada={'forward_origin' in msg}", flush=True)
+    if texto.strip():
+        threading.Thread(target=responder_telegram, args=(chat_id, texto), daemon=True).start()
+    else:
+        threading.Thread(target=enviar_telegram, args=(chat_id, SO_TEXTO), daemon=True).start()
+    return "ok", 200
+
+
+threading.Thread(target=configurar_telegram, daemon=True).start()
+
+
+@app.post("/twilio")
+def receber_twilio():
+    campos = request.form.to_dict()
+    url = os.getenv("TWILIO_WEBHOOK_URL") or f"https://{request.host}{request.path}"
+    if not assinatura_twilio_valida(url, campos, request.headers.get("X-Twilio-Signature")):
+        print("[twilio] assinatura inválida", flush=True)
+        return "assinatura inválida", 403
+
+    vazio = ('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', 200,
+             {"Content-Type": "text/xml"})
+    if not primeira_vez(campos.get("MessageSid")):
+        return vazio
+    numero = campos.get("From", "")
+    print(f"[twilio mensagem] de ...{numero[-4:]} mídias {campos.get('NumMedia', '0')}", flush=True)
+    texto = campos.get("Body", "")
+    if texto.strip():
+        threading.Thread(target=responder, args=(numero, texto, enviar_twilio), daemon=True).start()
+    else:
+        threading.Thread(target=enviar_twilio, args=(numero, SO_TEXTO), daemon=True).start()
+    return vazio
 
 
 @app.post("/webhook")
