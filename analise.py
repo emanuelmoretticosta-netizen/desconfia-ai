@@ -31,7 +31,7 @@ def obter_cliente():
     """Cria a conexão com a OpenAI só na primeira vez que for usada."""
     global _cliente
     if _cliente is None:
-        _cliente = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        _cliente = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=40, max_retries=1)
     return _cliente
 
 

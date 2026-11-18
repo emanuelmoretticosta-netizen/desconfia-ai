@@ -32,8 +32,10 @@ import hmac
 import json
 import os
 import re
+import sys
 import threading
 import time
+import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -184,11 +186,14 @@ def responder(numero, texto, enviar=None):
     if not pode_analisar(numero):
         enviar(numero, "Você chegou ao limite de análises de hoje. Tente de novo amanhã.")
         return
+    inicio = time.time()
+    print(f"[análise] começando ({len(texto)} caracteres)", flush=True)
     try:
         ficha = analisar(texto[:MAX_CARACTERES])
+        print(f"[análise] pronta em {time.time() - inicio:.1f}s, risco {ficha.get('nivel_de_risco')}", flush=True)
         enviar(numero, montar_resposta(ficha))
     except Exception as erro:
-        print(f"[análise] ERRO: {erro}", flush=True)
+        print(f"[análise] ERRO depois de {time.time() - inicio:.1f}s: {type(erro).__name__}: {erro}", flush=True)
         enviar(numero, "Não consegui analisar agora. Tente de novo em alguns segundos.")
 
 
@@ -252,6 +257,20 @@ def enviar_twilio(numero, texto):
 @app.get("/")
 def saude():
     return "Desconfia.AI: bot no ar"
+
+
+@app.get("/diagnostico/<segredo>")
+def diagnostico(segredo):
+    """Mostra em que linha cada tarefa do servidor está agora (protegido por senha)."""
+    esperado = os.getenv("D360_SECRET", "")
+    if not esperado or not hmac.compare_digest(segredo, esperado):
+        return "segredo inválido", 403
+    nomes = {t.ident: t.name for t in threading.enumerate()}
+    partes = []
+    for ident, quadro in sys._current_frames().items():
+        pilha = "".join(traceback.format_stack(quadro)[-6:])
+        partes.append(f"=== {nomes.get(ident, ident)} ===\n{pilha}")
+    return "\n".join(partes), 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 
 @app.get("/webhook")
