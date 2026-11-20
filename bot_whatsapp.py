@@ -152,6 +152,9 @@ def montar_resposta(ficha):
     if ficha.get("o_que_fazer"):
         partes.append(f"*O que fazer agora*\n{ficha['o_que_fazer']}")
 
+    if ficha["nivel_de_risco"] in ("alto", "medio"):
+        partes.append("🆘 Já fez o pagamento? Mande *já paguei* que eu mostro como pedir o dinheiro de volta.")
+
     partes.append("_O Desconfia.AI não dá veredito: mostra sinais de risco. "
                   "Na dúvida, confirme sempre pelo canal oficial._")
     return "\n\n".join(partes)[:4000]
