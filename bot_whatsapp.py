@@ -45,6 +45,7 @@ from datetime import date
 from flask import Flask, request
 
 from analise import analisar, juntar_sinais
+from ja_paguei import parece_ja_paguei, resposta_whatsapp
 from verificacoes import texto_dos_dias
 
 VERSAO_API = "v25.0"
@@ -71,6 +72,7 @@ BOAS_VINDAS = (
     "(ou copie e cole aqui). Também pode me contar o que aconteceu, por exemplo uma ligação.\n\n"
     "Eu mostro os sinais de golpe e o que fazer. Não dou veredito: na dúvida, confirme sempre "
     "pelo canal oficial.\n\n"
+    "Se você *já pagou*, mande \"já paguei\" que eu mostro como pedir o dinheiro de volta.\n\n"
     "_Não mande senhas nem documentos._"
 )
 
@@ -180,6 +182,9 @@ def responder(numero, texto, enviar=None):
     """Roda em segundo plano, para o WhatsApp receber o 'ok' na hora."""
     enviar = enviar or enviar_texto
     texto = texto.strip()
+    if parece_ja_paguei(texto):
+        enviar(numero, resposta_whatsapp())
+        return
     if len(texto) < 20:
         enviar(numero, BOAS_VINDAS)
         return

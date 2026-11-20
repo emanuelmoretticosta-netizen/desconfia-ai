@@ -23,6 +23,9 @@ if not os.getenv("OPENAI_API_KEY"):
 
 from analise import EXEMPLO_GOLPE, EXEMPLO_LEGITIMO, analisar, juntar_sinais  # noqa: E402
 from verificacoes import texto_dos_dias  # noqa: E402
+from ja_paguei import (  # noqa: E402
+    DEPOIS, FONTES, PASSOS, preencher_a_partir_da_analise, texto_para_o_banco, texto_para_o_bo,
+)
 
 MAX_CARACTERES = 3000   # mensagens maiores são cortadas, para proteger os créditos
 MAX_ANALISES = 15       # limite de análises por visita, contra abuso da demo
@@ -51,6 +54,11 @@ st.markdown(
       .fazer { background: #13233a; color: #ffffff; border-radius: 14px; padding: 16px 20px; margin: 18px 0; }
       .fazer strong { display: block; font-size: 1.15rem; margin-bottom: 4px; }
       .dados td { padding: 6px 12px 6px 0; vertical-align: top; }
+      .paguei { background: #eaf4ee; border-color: #1d6b45; color: #0f3d27; }
+      .passos { padding-left: 1.3rem; margin: 6px 0 18px; }
+      .passos li { margin: 0 0 14px; }
+      .passos strong { display: block; font-size: 1.08rem; }
+      .passos span { color: #4d5b6e; }
       .dados td:first-child { color: #4d5b6e; white-space: nowrap; }
     </style>
     """,
@@ -116,6 +124,58 @@ def texto_da_consulta(v):
     return "não conseguimos consultar o registro agora."
 
 
+MODO_ANALISE = "Recebi uma mensagem suspeita"
+MODO_PAGUEI = "Já paguei, e agora?"
+
+
+def ir_para_ja_paguei():
+    st.session_state.modo = MODO_PAGUEI
+
+
+def voltar_para_analise():
+    st.session_state.modo = MODO_ANALISE
+
+
+def rodape():
+    st.divider()
+    st.caption(
+        "O Desconfia.AI não dá veredito: mostra sinais de risco e o que fazer. "
+        "Na dúvida, confirme sempre pelo canal oficial. A mensagem é enviada à IA da OpenAI para análise e nós não a guardamos. Evite colar senhas ou documentos. "
+        "Projeto para o Hack Brasil 2026."
+    )
+
+
+def mostrar_ja_paguei():
+    st.markdown(
+        '<div class="faixa paguei" role="status"><h2>Já pagou? Ainda dá para agir.</h2>'
+        "<p>Faça nesta ordem. Quanto mais rápido, maior a chance de recuperar o dinheiro.</p></div>",
+        unsafe_allow_html=True,
+    )
+    itens = "".join(f"<li><strong>{e(titulo)}</strong><span>{e(detalhe)}</span></li>" for titulo, detalhe in PASSOS)
+    st.markdown(f'<ol class="passos">{itens}</ol>', unsafe_allow_html=True)
+
+    st.subheader("Texto pronto para o banco e para o boletim")
+    st.caption("Preencha o que souber. Esses dados não passam pela IA e não ficam guardados.")
+    base = preencher_a_partir_da_analise(st.session_state.get("resultado"))
+    valor = st.text_input("Quanto você pagou?", value=base["valor"], placeholder="Ex.: R$ 49,90", key="pg_valor")
+    quando = st.date_input("Em que dia fez o Pix?", value=date.today(), max_value=date.today(),
+                           format="DD/MM/YYYY", key="pg_data")
+    destino = st.text_input("Para quem foi o Pix? (nome ou chave Pix)", value=base["destino"], key="pg_destino")
+    relato = st.text_area("Como foi o golpe? (resumo curto)", value=base["relato"], height=90, key="pg_relato",
+                          placeholder="Ex.: Recebi uma mensagem dizendo que eu tinha dinheiro para receber e pagaram uma taxa.")
+
+    st.markdown("**Para o banco** (cole no chat do app ou leia para o atendente):")
+    st.code(texto_para_o_banco(valor, quando, destino, relato), language=None, wrap_lines=True)
+    st.markdown("**Para o boletim de ocorrência:**")
+    st.code(texto_para_o_bo(valor, quando, destino, relato), language=None, wrap_lines=True)
+    st.caption("Para copiar, use o botão no canto de cada quadro.")
+
+    st.subheader("O que acontece depois")
+    st.markdown("\n".join(f"- {item}" for item in DEPOIS))
+    st.caption("Fontes: " + " · ".join(f"[{nome}]({link})" for nome, link in FONTES))
+    st.button("Voltar e analisar uma mensagem", on_click=voltar_para_analise, width="stretch")
+
+
 def usar_exemplo(texto):
     st.session_state.mensagem = texto
 
@@ -127,6 +187,13 @@ st.markdown(
     "A gente aponta os sinais de golpe e diz o que fazer.</p>",
     unsafe_allow_html=True,
 )
+
+modo = st.radio("O que aconteceu?", [MODO_ANALISE, MODO_PAGUEI], key="modo", horizontal=True,
+                label_visibility="collapsed")
+if modo == MODO_PAGUEI:
+    mostrar_ja_paguei()
+    rodape()
+    st.stop()
 
 mensagem = st.text_area(
     "Mensagem recebida",
@@ -210,6 +277,9 @@ if ficha:
         st.markdown("".join(partes), unsafe_allow_html=True)
         st.caption("Um site antigo não quer dizer que seja confiável: golpistas também usam sites invadidos ou conhecidos.")
 
+    if ficha["nivel_de_risco"] in ("alto", "medio"):
+        st.button("Já fiz o pagamento. E agora?", on_click=ir_para_ja_paguei, width="stretch")
+
     encontrados = [
         ("Diz ser", ficha.get("quem_diz_ser")),
         ("Quem recebe", ficha.get("quem_recebe")),
@@ -223,9 +293,4 @@ if ficha:
         st.subheader("O que encontramos na mensagem")
         st.markdown(f'<table class="dados">{"".join(linhas)}</table>', unsafe_allow_html=True)
 
-st.divider()
-st.caption(
-    "O Desconfia.AI não dá veredito: mostra sinais de risco e o que fazer. "
-    "Na dúvida, confirme sempre pelo canal oficial. A mensagem é enviada à IA da OpenAI para análise e nós não a guardamos. Evite colar senhas ou documentos. "
-    "Projeto para o Hack Brasil 2026."
-)
+rodape()
