@@ -54,7 +54,7 @@ Responda APENAS com um JSON neste formato:
   "sites": [sites citados, só o domínio, sem http e sem formatação, ex.: "exemplo.com.br"],
   "programa_citado": programa do governo citado, ou null,
   "valor_pedido": valor que a pessoa precisa pagar, como texto, ou null,
-  "sinais": [{"sinal": frase curta e simples, "trecho": trecho exato da mensagem}],
+  "sinais": [{"sinal": frase completa explicando por que aquilo é suspeito, "trecho": trecho exato da mensagem}],
   "nivel_de_risco": "baixo" ou "medio" ou "alto",
   "explicacao_simples": até 3 frases para uma pessoa sem prática com celular,
   "o_que_fazer": 1 ou 2 frases com a ação recomendada
@@ -65,6 +65,9 @@ Regras:
 - "quem_diz_ser" NÃO é quem recebe o dinheiro. Se a mensagem diz ser do Banco Central mas
   pede Pix para outra chave, o Banco Central vai em "quem_diz_ser".
 - Só aponte sinais que aparecem de fato na mensagem.
+- Cada "sinal" deve ser uma frase completa, adaptada à situação da mensagem, dizendo o que ela
+  faz e por que isso é suspeito. Nunca escreva só um rótulo curto como "pague a taxa".
+- Não repita o mesmo sinal com palavras diferentes.
 - E-mail, telefone e CPF são tipos comuns de chave Pix. Nunca diga, nem nos sinais nem na
   explicação, que usar e-mail ou telefone como chave Pix é suspeito. O que pode ser suspeito
   é um órgão do governo ou um banco pedir pagamento para a conta de uma pessoa comum.
@@ -75,7 +78,7 @@ Regras:
 # Palavras que indicam que a mensagem usa o nome do governo ou de um programa oficial
 NOMES_OFICIAIS = [
     "valores a receber", "desenrola", "fgts", "inss", "bolsa família", "bolsa familia",
-    "receita federal", "banco central", "governo federal", "gov.br",
+    "receita federal", "banco central", "governo federal", "gov.br", "governo",
 ]
 
 # Encurtadores de link: escondem o endereço verdadeiro do site
@@ -88,6 +91,9 @@ PADRAO_SITE = re.compile(r"(?:https?://)?(?:www\.)?((?:[a-z0-9-]+\.)+[a-z]{2,})"
 # Serve para não mostrar o mesmo sinal duas vezes no laudo.
 PALAVRAS_DA_CATEGORIA = {
     "ia": r"\bia\b|intelig[eê]ncia artificial|instru[cç]",
+    "parente": r"troc(ou|ei|ar) de (n[uú]mero|celular|telefone)|n[uú]mero novo|novo n[uú]mero|parente|familiar",
+    "conta_segura": r"conta segura|conta de seguran[cç]a|transferir (o |seu |todo o )?(saldo|dinheiro)",
+    "emprestimo": r"empr[eé]stimo|cr[eé]dito",
     "taxa": r"taxa|tarifa|pagamento antecipado|pagamento para liberar|pague",
     "dados": r"cpf|nome da (sua )?m[aã]e|senha|c[oó]digo|dados|informa[cç][oõ]es pessoais",
     "ganho": r"garantid|rendimento|lucro|retorno",
@@ -140,6 +146,25 @@ def checar_regras(texto, sites):
         r"(informe|envie|digite|confirme|mande|passe|repasse)[^.]{0,40}(senha|c[oó]digo|token)", t
     ):
         achou("dados", "Pede dados sigilosos, como senha, código ou nome da mãe, usados para roubar contas e identidades.", "alto")
+
+    # Falso parente: diz que trocou de número e já pede dinheiro
+    if re.search(r"troquei de (n[uú]mero|celular|telefone|whats)|(esse|este) [eé] (o )?meu (n[uú]mero )?novo|meu n[uú]mero novo|mudei de n[uú]mero", t) \
+            and re.search(r"\bpix\b|transfer|deposit|boleto|emprest|dinheiro|r\$", t):
+        achou("parente", "Diz que trocou de número e já pede dinheiro: é o golpe do falso parente. "
+                         "Ligue para o número antigo da pessoa antes de fazer qualquer coisa.", "alto")
+
+    # Falsa central: pede para mover o dinheiro para uma "conta segura"
+    padrao_conta = r"conta (segura|de seguran[cç]a|protegida)|transferir (o |seu |todo o )?(saldo|dinheiro)"
+    avisa_que_nao = re.search(r"(nunca|n[aã]o)[^.!?]{0,40}(" + padrao_conta + ")", t)
+    if re.search(padrao_conta, t) and not avisa_que_nao:
+        achou("conta_segura", "Pede para transferir o seu dinheiro para uma \"conta segura\". "
+                              "Banco nenhum faz isso: é o golpe da falsa central.", "alto")
+
+    # Empréstimo com pagamento antecipado
+    if re.search(r"empr[eé]stimo|cr[eé]dito (aprovado|liberado|pr[eé]-aprovado)", t) \
+            and re.search(r"\b(taxa|tarifa|seguro|dep[oó]sito|adiantamento)\b", t) and pede_pagamento and not nega_cobranca:
+        achou("emprestimo", "Cobra um valor antes de liberar o empréstimo. Instituição séria desconta as "
+                            "taxas do valor emprestado, nunca pede pagamento antecipado.", "alto")
 
     if re.search(r"rendimento garantido|lucro garantido|retorno garantido|sem risco|\d+ ?% ao (m[eê]s|dia)", t):
         achou("ganho", "Promete ganho garantido ou alto demais. Investimento de verdade sempre tem risco.", "alto")
