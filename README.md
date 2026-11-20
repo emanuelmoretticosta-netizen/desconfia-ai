@@ -46,9 +46,10 @@ O Desconfia.AI **nunca diz que uma mensagem é segura**: mostra sinais de risco 
 
 1. **Entrada:** texto colado no site ou o relato do que aconteceu. Protótipo no WhatsApp: a pessoa encaminha a mensagem e recebe o laudo na conversa.
 2. **Extração com IA:** a IA identifica quem diz ser, quem recebe o dinheiro, chave Pix, telefone, site, programa citado e valor pedido.
-3. **Regras fixas, escritas por nós:** conferem sinais clássicos de golpe, como taxa cobrada em nome de órgão oficial, pedido de senha, código ou nome da mãe, ganho garantido, link encurtado, site "oficial" que não termina em .gov.br e pressa. As regras **só aumentam o risco**, nunca diminuem.
+3. **Regras fixas, escritas por nós:** conferem sinais clássicos de golpe, incluindo regras dedicadas aos golpes mais relatados: falso parente ("troquei de número" e pedido de dinheiro), falsa central ("transfira para uma conta segura") e empréstimo com taxa antecipada. Também conferem taxa cobrada em nome de órgão oficial, pedido de senha, código ou nome da mãe, ganho garantido, link encurtado, site "oficial" que não termina em .gov.br e pressa. As regras **só aumentam o risco**, nunca diminuem.
 4. **Consulta em fonte oficial:** a idade do site da mensagem, no registro oficial de domínios (protocolo RDAP; para sites .br, o Registro.br). Site criado há poucos dias, ou que nem está registrado, é sinal forte de golpe.
 5. **Laudo:** nível de risco, sinais com o trecho da mensagem, o que fazer e as fontes consultadas.
+6. **Modo "já paguei":** passo a passo para pedir o dinheiro de volta pelo **MED** (Mecanismo Especial de Devolução do Pix), na ordem certa, e textos prontos para o banco e para o boletim de ocorrência, já preenchidos com os dados da mensagem analisada. No WhatsApp, basta mandar "já paguei".
 
 ## Segurança
 
@@ -66,11 +67,16 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 
 | Já funciona | Em construção até 30/11 |
 | --- | --- |
-| App no ar, com laudo em linguagem simples | Consulta ao Banco Central (instituições autorizadas e domínios verificados) |
-| Sinais de golpe com o trecho da mensagem marcado | Os 8 tipos de golpe mais relatados, com a fonte oficial de cada um |
-| Regras fixas e defesa contra prompt injection | Modo "já paguei", com o passo a passo do MED |
-| Idade do site no registro oficial de domínios | Envio de print da conversa |
-| Protótipo no WhatsApp (em teste) | Taxa de acerto medida numa base de testes |
+| App no ar, com laudo em linguagem simples | Orientação oficial de cada tipo de golpe no laudo |
+| Sinais de golpe com o trecho da mensagem marcado | Base de testes maior, com taxa de acerto medida |
+| Regras fixas, incluindo os golpes mais relatados, e defesa contra prompt injection | Envio de print da conversa |
+| Idade do site no registro oficial de domínios | |
+| Modo "já paguei", com o passo a passo do MED e textos prontos | |
+| Protótipo no WhatsApp (em teste) | |
+
+### Testes
+
+O arquivo `testes_golpes.py` testa o app com uma mensagem fictícia de cada um dos 8 tipos de golpe mais relatados (falsa venda, falsa central, falso parente, falso programa do governo, falso emprego, falso investimento, falso empréstimo e boleto falso) e com 4 mensagens normais, incluindo avisos verdadeiros sobre golpes. Resultado em 20/11/2026: **12 de 12 corretas** (golpe com risco médio ou alto, mensagem normal com risco baixo). É uma amostra pequena: estamos montando uma base maior para medir a taxa de acerto de verdade.
 
 ### Sobre o WhatsApp
 
@@ -83,7 +89,7 @@ O bot responde no WhatsApp de verdade, pelo sandbox oficial da 360dialog, parcei
 | Apps que dizem se uma mensagem "parece golpe" | Só a opinião da IA, sem provas | Confere em fonte oficial e mostra a fonte |
 | Questionários de risco | A pessoa precisa responder tudo sozinha | Lê a mensagem automaticamente |
 | Bloqueio de chaves Pix pelos bancos | Só age na hora do pagamento e depois de denúncias | Age antes, no momento em que a oferta chega |
-| Nenhuma | Quem já caiu fica sem orientação | Vai guiar a recuperação pelo MED |
+| Nenhuma | Quem já caiu fica sem orientação | Guia a recuperação pelo MED, com textos prontos para o banco e o boletim |
 
 ## Tecnologias
 
@@ -100,7 +106,9 @@ O bot responde no WhatsApp de verdade, pelo sandbox oficial da 360dialog, parcei
 | --- | --- |
 | `analise.py` | Coração do projeto: chama a IA, aplica as regras fixas e monta a análise |
 | `verificacoes.py` | Consultas a fontes públicas (idade do site via RDAP) |
+| `ja_paguei.py` | Modo "já paguei": passos do MED e textos prontos |
 | `app.py` | Tela do app em Streamlit |
+| `testes_golpes.py` | Testes com os 8 tipos de golpe mais relatados e mensagens normais |
 | `bot_whatsapp.py` | Servidor do bot: recebe a mensagem, analisa e responde |
 | `index.html` | Página pública do projeto |
 
@@ -122,7 +130,8 @@ Depois:
 
 ```bash
 streamlit run app.py      # abre o app no navegador
-python analise.py         # roda os 4 testes com a IA: golpe, mensagem normal, golpe que tenta enganar a IA e alerta verdadeiro
+python testes_golpes.py   # testa os 8 tipos de golpe mais relatados e 4 mensagens normais
+python analise.py         # testes rápidos: golpe, mensagem normal, golpe que tenta enganar a IA e alerta verdadeiro
 python verificacoes.py    # testa a consulta da idade dos sites (não usa a OpenAI)
 ```
 
