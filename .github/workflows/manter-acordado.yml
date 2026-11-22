@@ -1,0 +1,19 @@
+name: Manter o app acordado
+
+on:
+  schedule:
+    - cron: "17 */4 * * *"   # a cada 4 horas
+  workflow_dispatch:          # permite rodar na mão pela aba Actions
+
+jobs:
+  visitar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install playwright==1.49.0
+      - run: python -m playwright install --with-deps chromium
+      - run: python manter_acordado.py

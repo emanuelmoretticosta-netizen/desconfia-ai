@@ -1,5 +1,7 @@
 # Desconfia.AI
 
+[![Testes](https://github.com/emanuelmoretticosta-netizen/desconfia-ai/actions/workflows/testes.yml/badge.svg)](https://github.com/emanuelmoretticosta-netizen/desconfia-ai/actions/workflows/testes.yml)
+
 **A IA que desconfia por você!** Antes de pagar, confira. Se já pagou, recupere.
 
 Projeto para o Hack Brasil 2026, trilha de **Cibersegurança**.
@@ -83,6 +85,7 @@ Todas as mensagens de teste são fictícias.
 
 - **Base de testes da equipe** (`dados/testes_golpes.csv`): 40 mensagens, sendo 30 golpes de 10 tipos (falsa taxa, falsa venda, falsa caridade, falso investimento, falso programa de pontos, falso auxílio, falso site de vendas, falsa dívida, falsa central e falso parente) e 10 mensagens normais, incluindo avisos verdadeiros sobre golpes e um parente pedindo Pix **sem** trocar de número. Os 24 primeiros casos foram montados por Maria Clara de Andrade e Silva, e os demais têm como base alertas oficiais, com a fonte na própria planilha. Para rodar: `python avaliar_planilha.py`.
   **Resultado em 22/11/2026: 30 de 30 golpes com risco médio ou alto e 10 de 10 mensagens normais com risco baixo.** O detalhe de cada caso fica em `dados/resultados_testes.csv`.
+- **Testes automáticos** (`test_regras.py`): conferem as regras fixas, a detecção de sites que imitam marcas, a conferência dos trechos, o modo "já paguei" e a assinatura dos avisos do WhatsApp. Não usam a IA nem a internet e rodam sozinhos no GitHub a cada envio: o selo no topo desta página mostra o resultado.
 - **Teste rápido** (`testes_golpes.py`): um golpe de cada um dos 8 tipos mais relatados e 4 mensagens normais. Resultado: 12 de 12.
 
 Transparência: as regras foram ajustadas durante o desenvolvimento usando essa base, então ela ainda não é um teste independente. Os links da planilha usam terminações reservadas (.invalid, .test, .example), que não existem na internet, e são trocados por .com só na hora da análise, para que a IA não perceba que é um teste.
@@ -120,6 +123,8 @@ O bot responde no WhatsApp de verdade, pelo sandbox oficial da 360dialog, parcei
 | `app.py` | Tela do app em Streamlit |
 | `testes_golpes.py` | Teste rápido com os 8 tipos de golpe mais relatados e mensagens normais |
 | `avaliar_planilha.py` | Roda a base de testes da equipe e calcula o acerto |
+| `test_regras.py` | Testes automáticos que rodam no GitHub a cada envio |
+| `manter_acordado.py` | Visita o app a cada 4 horas para ele não "dormir" (GitHub Actions) |
 | `dados/` | Base de testes (`testes_golpes.csv`) e o último resultado (`resultados_testes.csv`) |
 | `bot_whatsapp.py` | Servidor do bot: recebe a mensagem, analisa e responde |
 | `index.html` | Página pública do projeto |
@@ -146,6 +151,7 @@ python avaliar_planilha.py  # roda a base de testes da equipe (40 mensagens) e c
 python testes_golpes.py   # teste rápido: 8 tipos de golpe e 4 mensagens normais
 python analise.py         # testes rápidos: golpe, mensagem normal, golpe que tenta enganar a IA e alerta verdadeiro
 python verificacoes.py    # testa a consulta da idade dos sites (não usa a OpenAI)
+python -m pytest -q test_regras.py  # testes automáticos das regras (não usa a OpenAI)
 ```
 
 Para rodar o servidor do bot: `pip install -r requirements-bot.txt` e `gunicorn bot_whatsapp:app`. As variáveis de ambiente necessárias estão descritas no início de `bot_whatsapp.py`.
