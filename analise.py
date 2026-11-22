@@ -17,6 +17,7 @@ import re
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from marcas import frase as frase_imitacao, imitacoes
 from verificacoes import consultar_sites, sinais_dos_sites
 
 load_dotenv()  # lê a chave do arquivo .env (que NUNCA vai para o GitHub)
@@ -95,6 +96,7 @@ PADRAO_SITE = re.compile(r"(?:https?://)?(?:www\.)?((?:[a-z0-9-]+\.)+[a-z]{2,})"
 PALAVRAS_DA_CATEGORIA = {
     "ia": r"\bia\b|intelig[eê]ncia artificial|instru[cç]",
     "parente": r"troc(ou|ei|ar) de (n[uú]mero|celular|telefone)|n[uú]mero novo|novo n[uú]mero|parente|familiar",
+    "imitacao": r"imita|parecid|erro de digita|falsifica|nome d[aeo] (loja|banco|marca|empresa)",
     "conta_segura": r"conta segura|conta de seguran[cç]a|transferir (o |seu |todo o )?(saldo|dinheiro)",
     "central": r"central de (seguran|atendimento|relacionamento)|falsa central|0800|n[aã]o reconhec",
     "emprestimo": r"empr[eé]stimo|cr[eé]dito",
@@ -188,6 +190,10 @@ def checar_regras(texto, sites):
         for site in sorted(sites):
             if site not in ENCURTADORES and not (site == "gov.br" or site.endswith(".gov.br")):
                 achou("site", f"Usa o nome do governo, mas o site {site} não é um endereço oficial (os do governo terminam em .gov.br).", "alto")
+
+    # Site que imita marca conhecida (typosquatting): comparação fixa com os sites oficiais
+    for achado in imitacoes(sites):
+        achou("imitacao", frase_imitacao(achado), "alto")
 
     if re.search(r"s[oó] hoje|somente hoje|[uú]ltimas horas|expira|urgente|imediatamente", t):
         achou("pressa", "Cria pressa para você não pensar com calma.", "medio")

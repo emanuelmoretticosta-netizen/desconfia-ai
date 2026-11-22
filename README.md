@@ -47,9 +47,10 @@ O Desconfia.AI **nunca diz que uma mensagem é segura**: mostra sinais de risco 
 1. **Entrada:** texto colado no site ou o relato do que aconteceu. Protótipo no WhatsApp: a pessoa encaminha a mensagem e recebe o laudo na conversa.
 2. **Extração com IA:** a IA identifica quem diz ser, quem recebe o dinheiro, chave Pix, telefone, site, programa citado e valor pedido.
 3. **Regras fixas, escritas por nós:** conferem sinais clássicos de golpe, incluindo regras dedicadas aos golpes mais relatados: falso parente ("troquei de número" e pedido de dinheiro), falsa central ("transfira para uma conta segura") e empréstimo com taxa antecipada. Também conferem taxa cobrada em nome de órgão oficial, pedido de senha, código ou nome da mãe, ganho garantido, link encurtado, site "oficial" que não termina em .gov.br e pressa. As regras **só aumentam o risco**, nunca diminuem.
-4. **Consulta em fonte oficial:** a idade do site da mensagem, no registro oficial de domínios (protocolo RDAP; para sites .br, o Registro.br). Site criado há poucos dias, ou que nem está registrado, é sinal forte de golpe.
-5. **Laudo:** nível de risco, sinais com o trecho da mensagem, o que fazer e as fontes consultadas.
-6. **Modo "já paguei":** passo a passo para pedir o dinheiro de volta pelo **MED** (Mecanismo Especial de Devolução do Pix), na ordem certa, e textos prontos para o banco e para o boletim de ocorrência, já preenchidos com os dados da mensagem analisada. No WhatsApp, basta mandar "já paguei".
+4. **Site que imita marca conhecida (typosquatting):** o app compara cada endereço da mensagem com os sites oficiais das marcas mais imitadas em golpes (bancos, lojas, Correios, Serasa). Se o endereço usa o nome da marca, ou uma versão com erro de digitação como "nubanck", e não é o site oficial, o laudo avisa e mostra o endereço verdadeiro. A lista está em `marcas.py`.
+5. **Consulta em fonte oficial:** a idade do site da mensagem, no registro oficial de domínios (protocolo RDAP; para sites .br, o Registro.br). Site criado há poucos dias, ou que nem está registrado, é sinal forte de golpe.
+6. **Laudo:** nível de risco, sinais com o trecho da mensagem, o que fazer e as fontes consultadas.
+7. **Modo "já paguei":** passo a passo para pedir o dinheiro de volta pelo **MED** (Mecanismo Especial de Devolução do Pix), na ordem certa, e textos prontos para o banco e para o boletim de ocorrência, já preenchidos com os dados da mensagem analisada. No WhatsApp, basta mandar "já paguei".
 
 ## Segurança
 
@@ -71,6 +72,7 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 | Sinais de golpe com o trecho da mensagem marcado | Teste com mensagens novas, que não foram usadas no desenvolvimento |
 | Regras fixas, incluindo os golpes mais relatados, e defesa contra prompt injection | Envio de print da conversa |
 | Idade do site no registro oficial de domínios | |
+| Alerta de site que imita marca conhecida | |
 | Modo "já paguei", com o passo a passo do MED e textos prontos | |
 | Protótipo no WhatsApp (em teste) | |
 | Testado com 40 mensagens: 30 golpes de 10 tipos e 10 normais | |
@@ -113,6 +115,7 @@ O bot responde no WhatsApp de verdade, pelo sandbox oficial da 360dialog, parcei
 | --- | --- |
 | `analise.py` | Coração do projeto: chama a IA, aplica as regras fixas e monta a análise |
 | `verificacoes.py` | Consultas a fontes públicas (idade do site via RDAP) |
+| `marcas.py` | Detecta sites que imitam marcas conhecidas |
 | `ja_paguei.py` | Modo "já paguei": passos do MED e textos prontos |
 | `app.py` | Tela do app em Streamlit |
 | `testes_golpes.py` | Teste rápido com os 8 tipos de golpe mais relatados e mensagens normais |
