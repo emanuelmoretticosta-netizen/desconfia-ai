@@ -68,15 +68,22 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 | Já funciona | Em construção até 30/11 |
 | --- | --- |
 | App no ar, com laudo em linguagem simples | Orientação oficial de cada tipo de golpe no laudo |
-| Sinais de golpe com o trecho da mensagem marcado | Base de testes maior, com taxa de acerto medida |
+| Sinais de golpe com o trecho da mensagem marcado | Teste com mensagens novas, que não foram usadas no desenvolvimento |
 | Regras fixas, incluindo os golpes mais relatados, e defesa contra prompt injection | Envio de print da conversa |
 | Idade do site no registro oficial de domínios | |
 | Modo "já paguei", com o passo a passo do MED e textos prontos | |
 | Protótipo no WhatsApp (em teste) | |
+| Testado com 40 mensagens: 30 golpes de 10 tipos e 10 normais | |
 
 ### Testes
 
-O arquivo `testes_golpes.py` testa o app com uma mensagem fictícia de cada um dos 8 tipos de golpe mais relatados (falsa venda, falsa central, falso parente, falso programa do governo, falso emprego, falso investimento, falso empréstimo e boleto falso) e com 4 mensagens normais, incluindo avisos verdadeiros sobre golpes. Resultado em 20/11/2026: **12 de 12 corretas** (golpe com risco médio ou alto, mensagem normal com risco baixo). É uma amostra pequena: estamos montando uma base maior para medir a taxa de acerto de verdade.
+Todas as mensagens de teste são fictícias.
+
+- **Base de testes da equipe** (`dados/testes_golpes.csv`): 40 mensagens, sendo 30 golpes de 10 tipos (falsa taxa, falsa venda, falsa caridade, falso investimento, falso programa de pontos, falso auxílio, falso site de vendas, falsa dívida, falsa central e falso parente) e 10 mensagens normais, incluindo avisos verdadeiros sobre golpes e um parente pedindo Pix **sem** trocar de número. Os 24 primeiros casos foram montados por Maria Clara de Andrade e Silva, e os demais têm como base alertas oficiais, com a fonte na própria planilha. Para rodar: `python avaliar_planilha.py`.
+  **Resultado em 22/11/2026: 30 de 30 golpes com risco médio ou alto e 10 de 10 mensagens normais com risco baixo.** O detalhe de cada caso fica em `dados/resultados_testes.csv`.
+- **Teste rápido** (`testes_golpes.py`): um golpe de cada um dos 8 tipos mais relatados e 4 mensagens normais. Resultado: 12 de 12.
+
+Transparência: as regras foram ajustadas durante o desenvolvimento usando essa base, então ela ainda não é um teste independente. Os links da planilha usam terminações reservadas (.invalid, .test, .example), que não existem na internet, e são trocados por .com só na hora da análise, para que a IA não perceba que é um teste.
 
 ### Sobre o WhatsApp
 
@@ -108,7 +115,9 @@ O bot responde no WhatsApp de verdade, pelo sandbox oficial da 360dialog, parcei
 | `verificacoes.py` | Consultas a fontes públicas (idade do site via RDAP) |
 | `ja_paguei.py` | Modo "já paguei": passos do MED e textos prontos |
 | `app.py` | Tela do app em Streamlit |
-| `testes_golpes.py` | Testes com os 8 tipos de golpe mais relatados e mensagens normais |
+| `testes_golpes.py` | Teste rápido com os 8 tipos de golpe mais relatados e mensagens normais |
+| `avaliar_planilha.py` | Roda a base de testes da equipe e calcula o acerto |
+| `dados/` | Base de testes (`testes_golpes.csv`) e o último resultado (`resultados_testes.csv`) |
 | `bot_whatsapp.py` | Servidor do bot: recebe a mensagem, analisa e responde |
 | `index.html` | Página pública do projeto |
 
@@ -130,7 +139,8 @@ Depois:
 
 ```bash
 streamlit run app.py      # abre o app no navegador
-python testes_golpes.py   # testa os 8 tipos de golpe mais relatados e 4 mensagens normais
+python avaliar_planilha.py  # roda a base de testes da equipe (40 mensagens) e calcula o acerto
+python testes_golpes.py   # teste rápido: 8 tipos de golpe e 4 mensagens normais
 python analise.py         # testes rápidos: golpe, mensagem normal, golpe que tenta enganar a IA e alerta verdadeiro
 python verificacoes.py    # testa a consulta da idade dos sites (não usa a OpenAI)
 ```

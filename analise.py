@@ -71,6 +71,9 @@ Regras:
 - E-mail, telefone e CPF são tipos comuns de chave Pix. Nunca diga, nem nos sinais nem na
   explicação, que usar e-mail ou telefone como chave Pix é suspeito. O que pode ser suspeito
   é um órgão do governo ou um banco pedir pagamento para a conta de uma pessoa comum.
+- Avisos que alertam sobre golpes (por exemplo "nunca pedimos sua senha", "não cobramos taxa",
+  "desconfie de ligações") e que não pedem nenhuma ação arriscada (pagar, passar dados, clicar em
+  link desconhecido ou ligar para um número da própria mensagem) são avisos legítimos: risco "baixo".
 - Se não encontrar sinais, use risco "baixo", deixe "sinais" vazio e oriente a confirmar
   pelo canal oficial antes de pagar qualquer coisa.
 """
@@ -78,7 +81,7 @@ Regras:
 # Palavras que indicam que a mensagem usa o nome do governo ou de um programa oficial
 NOMES_OFICIAIS = [
     "valores a receber", "desenrola", "fgts", "inss", "bolsa família", "bolsa familia",
-    "receita federal", "banco central", "governo federal", "gov.br", "governo",
+    "receita federal", "banco central", "governo federal", "gov.br", "do governo", "pelo governo",
 ]
 
 # Encurtadores de link: escondem o endereço verdadeiro do site
@@ -93,6 +96,7 @@ PALAVRAS_DA_CATEGORIA = {
     "ia": r"\bia\b|intelig[eê]ncia artificial|instru[cç]",
     "parente": r"troc(ou|ei|ar) de (n[uú]mero|celular|telefone)|n[uú]mero novo|novo n[uú]mero|parente|familiar",
     "conta_segura": r"conta segura|conta de seguran[cç]a|transferir (o |seu |todo o )?(saldo|dinheiro)",
+    "central": r"central de (seguran|atendimento|relacionamento)|falsa central|0800|n[aã]o reconhec",
     "emprestimo": r"empr[eé]stimo|cr[eé]dito",
     "taxa": r"taxa|tarifa|pagamento antecipado|pagamento para liberar|pague",
     "dados": r"cpf|nome da (sua )?m[aã]e|senha|c[oó]digo|dados|informa[cç][oõ]es pessoais",
@@ -148,17 +152,24 @@ def checar_regras(texto, sites):
         achou("dados", "Pede dados sigilosos, como senha, código ou nome da mãe, usados para roubar contas e identidades.", "alto")
 
     # Falso parente: diz que trocou de número e já pede dinheiro
-    if re.search(r"troquei de (n[uú]mero|celular|telefone|whats)|(esse|este) [eé] (o )?meu (n[uú]mero )?novo|meu n[uú]mero novo|mudei de n[uú]mero", t) \
+    if re.search(r"troquei de (n[uú]mero|celular|telefone|whats|zap|chip)|(esse|este) [eé] (o )?meu (n[uú]mero )?novo|"
+                 r"meu (n[uú]mero|whats|whatsapp|zap|celular|telefone|contato) novo|novo (n[uú]mero|whats|whatsapp|zap)|mudei de n[uú]mero", t) \
             and re.search(r"\bpix\b|transfer|deposit|boleto|emprest|dinheiro|r\$", t):
         achou("parente", "Diz que trocou de número e já pede dinheiro: é o golpe do falso parente. "
                          "Ligue para o número antigo da pessoa antes de fazer qualquer coisa.", "alto")
 
     # Falsa central: pede para mover o dinheiro para uma "conta segura"
     padrao_conta = r"conta (segura|de seguran[cç]a|protegida)|transferir (o |seu |todo o )?(saldo|dinheiro)"
-    avisa_que_nao = re.search(r"(nunca|n[aã]o)[^.!?]{0,40}(" + padrao_conta + ")", t)
+    avisa_que_nao = re.search(r"(nunca|n[aã]o)[^.!?]{0,90}(" + padrao_conta + ")", t)
     if re.search(padrao_conta, t) and not avisa_que_nao:
         achou("conta_segura", "Pede para transferir o seu dinheiro para uma \"conta segura\". "
                               "Banco nenhum faz isso: é o golpe da falsa central.", "alto")
+
+    # Falsa central por SMS: avisa de compra que você não fez e manda ligar para um número da mensagem
+    if re.search(r"n[aã]o (reconhece|reconheceu|foi voc[eê])", t) and re.search(r"\bligue|\bligar|0800|central", t) \
+            and not re.search(r"verso do (seu )?cart[aã]o", t):
+        achou("central", "Avisa de uma compra que você não fez e pede para ligar para um número da própria mensagem: "
+                         "é o golpe da falsa central. Ligue só para o número que está no verso do seu cartão.", "alto")
 
     # Empréstimo com pagamento antecipado
     if re.search(r"empr[eé]stimo|cr[eé]dito (aprovado|liberado|pr[eé]-aprovado)", t) \
@@ -215,8 +226,10 @@ def analisar(mensagem):
         if isinstance(s, dict) and s.get("trecho") and not trecho_existe(s["trecho"], mensagem):
             s["trecho"] = None
 
-    # Junta os sites que a IA achou com os que as regras acham direto no texto
-    sites = {limpar_site(s) for s in ficha.get("sites") or []} | sites_do_texto(mensagem)
+    # Junta os sites que a IA achou (só se estiverem mesmo escritos na mensagem) com os que as regras acham
+    texto_minusculo = mensagem.lower()
+    sites_ia = {limpar_site(s) for s in ficha.get("sites") or []}
+    sites = {s for s in sites_ia if s and s in texto_minusculo} | sites_do_texto(mensagem)
     sites.discard(None)
     ficha["sites"] = sorted(sites)
 
