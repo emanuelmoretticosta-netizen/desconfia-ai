@@ -124,6 +124,10 @@ def montar_resposta(ficha):
     if ficha.get("explicacao_simples"):
         partes.append(ficha["explicacao_simples"])
 
+    if ficha.get("modo") == "seguranca":
+        partes.append("_Modo de segurança: a análise completa está fora do ar agora, então usei só as "
+                      "nossas regras fixas e as consultas oficiais. Tente de novo daqui a pouco._")
+
     sinais = juntar_sinais(ficha)
     if sinais:
         linhas = ["*Por que desconfiar*"]

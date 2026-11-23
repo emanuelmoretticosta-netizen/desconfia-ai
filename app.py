@@ -89,10 +89,29 @@ def versao_do_codigo():
     return soma.hexdigest()
 
 
+class ResultadoSemIA(Exception):
+    """Usada para não guardar na memória um resultado do modo de segurança."""
+
+    def __init__(self, ficha):
+        self.ficha = ficha
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def analisar_exemplo(texto, versao):
     """Os exemplos são sempre iguais: guardamos o resultado para economizar créditos."""
-    return analisar(texto)
+    ficha = analisar(texto)
+    if ficha.get("modo") == "seguranca":
+        raise ResultadoSemIA(ficha)  # erro não é guardado: quando a IA voltar, sai o laudo completo
+    return ficha
+
+
+def analisar_mensagem(texto):
+    if texto not in EXEMPLOS:
+        return analisar(texto)
+    try:
+        return analisar_exemplo(texto, versao_do_codigo())
+    except ResultadoSemIA as sem_ia:
+        return sem_ia.ficha
 
 
 @st.cache_resource
@@ -220,12 +239,10 @@ if analisar_agora:
         st.warning("Você chegou ao limite de análises desta visita. Recarregue a página mais tarde para continuar.")
     elif texto not in EXEMPLOS and not pode_analisar_hoje():
         st.warning("O Desconfia.AI atingiu o limite de análises de hoje. Volte amanhã ou use os exemplos.")
-    elif not os.getenv("OPENAI_API_KEY"):
-        st.error("O Desconfia.AI está sem a chave de acesso à IA. Avise a equipe do projeto.")
     else:
         try:
             with st.spinner("Analisando a mensagem..."):
-                ficha = analisar_exemplo(texto, versao_do_codigo()) if texto in EXEMPLOS else analisar(texto)
+                ficha = analisar_mensagem(texto)
             st.session_state.usos = usos + 1
             if texto not in EXEMPLOS:
                 contador_do_dia()["total"] += 1
@@ -236,11 +253,19 @@ if analisar_agora:
 ficha = st.session_state.get("resultado")
 if ficha:
     titulo, frase = FAIXAS[ficha["nivel_de_risco"]]
+    sem_ia = ficha.get("modo") == "seguranca"
+    if sem_ia and ficha["nivel_de_risco"] == "baixo":
+        frase = ("Nossas regras fixas não encontraram sinais clássicos de golpe, mas a análise completa está "
+                 "indisponível agora. Não pague nada antes de confirmar pelo canal oficial.")
     st.markdown(
         f'<div class="faixa {ficha["nivel_de_risco"]}" role="status">'
         f"<h2>{e(titulo)}</h2><p>{e(frase)}</p></div>",
         unsafe_allow_html=True,
     )
+    if sem_ia:
+        st.info("**Modo de segurança.** A inteligência artificial está indisponível agora, então este laudo usa "
+                "só as nossas regras fixas, a consulta oficial de domínios e a detecção de sites que imitam "
+                "marcas. Tente de novo daqui a pouco para ter a análise completa.")
 
     if ficha.get("explicacao_simples"):
         st.markdown(e(ficha["explicacao_simples"]))

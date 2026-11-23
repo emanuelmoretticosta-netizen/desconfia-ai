@@ -100,3 +100,18 @@ def test_assinatura_dos_avisos_do_whatsapp(monkeypatch):
     assert assinatura_valida(corpo, assinatura)
     assert not assinatura_valida(corpo, "sha256=" + "0" * 64)
     assert not assinatura_valida(corpo, None)
+
+
+def test_modo_de_seguranca_sem_ia(monkeypatch):
+    """Se a IA cair, o laudo sai mesmo assim, só com as regras fixas."""
+    import analise
+    monkeypatch.setenv("FORCAR_MODO_SEGURANCA", "1")
+    monkeypatch.setattr(analise, "consultar_sites", lambda sites, ignorar=(): [])
+    golpe = analise.analisar(EXEMPLO_GOLPE)
+    assert golpe["modo"] == "seguranca" and golpe["nivel_de_risco"] == "alto"
+    assert golpe["explicacao_simples"] and golpe["o_que_fazer"]
+    assert golpe["valor_pedido"] == "R$ 49,90"
+    assert "liberacao.valores@gmail.com" in golpe["chaves_pix"]
+    assert golpe["quem_diz_ser"] == "Valores a Receber (Banco Central)"
+    normal = analise.analisar(EXEMPLO_LEGITIMO)
+    assert normal["modo"] == "seguranca" and normal["nivel_de_risco"] == "baixo"
