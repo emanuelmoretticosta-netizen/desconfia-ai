@@ -80,14 +80,15 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 | Protótipo no WhatsApp (em teste) | |
 | Testado com 40 mensagens: 30 golpes de 10 tipos e 10 normais | |
 | Modo de segurança: o laudo sai mesmo se a IA cair | |
+| 8 exemplos prontos no app: um clique e o laudo aparece | |
 
 ### Testes
 
 Todas as mensagens de teste são fictícias.
 
 - **Base de testes da equipe** (`dados/testes_golpes.csv`): 40 mensagens, sendo 30 golpes de 10 tipos (falsa taxa, falsa venda, falsa caridade, falso investimento, falso programa de pontos, falso auxílio, falso site de vendas, falsa dívida, falsa central e falso parente) e 10 mensagens normais, incluindo avisos verdadeiros sobre golpes e um parente pedindo Pix **sem** trocar de número. Os 24 primeiros casos foram montados por Maria Clara de Andrade e Silva, e os demais têm como base alertas oficiais, com a fonte na própria planilha. Para rodar: `python avaliar_planilha.py`.
-  **Resultado em 22/11/2026: 30 de 30 golpes com risco médio ou alto e 10 de 10 mensagens normais com risco baixo.** O detalhe de cada caso fica em `dados/resultados_testes.csv`.
-  **No modo de segurança (sem a IA), as regras fixas sozinhas: 19 de 30 golpes e 10 de 10 mensagens normais**, ainda sem nenhum alarme falso. Ou seja: a IA faz diferença, e se ela cair o app continua útil. As regras não foram ajustadas para melhorar esse número.
+  **Resultado em 23/11/2026: 30 de 30 golpes com risco médio ou alto e 10 de 10 mensagens normais com risco baixo.** O detalhe de cada caso fica em `dados/resultados_testes.csv`.
+  **No modo de segurança (sem a IA), as regras fixas sozinhas: 23 de 30 golpes e 10 de 10 mensagens normais**, ainda sem nenhum alarme falso. Ou seja: a IA faz diferença, e se ela cair o app continua útil. As regras cobrem padrões gerais de golpe (ameaça de bloqueio, pedido de dados por link, nome de marca com site que não é o oficial, prazo curto e pedido de doação por site desconhecido, este último tirado da biblioteca de golpes da equipe) e não foram escritas caso a caso para esta planilha.
 - **Testes automáticos** (`test_regras.py`): conferem as regras fixas, a detecção de sites que imitam marcas, a conferência dos trechos, o modo "já paguei", o modo de segurança e a assinatura dos avisos do WhatsApp. Não usam a IA nem a internet e rodam sozinhos no GitHub a cada envio: o selo no topo desta página mostra o resultado.
 - **Teste rápido** (`testes_golpes.py`): um golpe de cada um dos 8 tipos mais relatados e 4 mensagens normais. Resultado: 12 de 12.
 

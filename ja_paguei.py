@@ -20,7 +20,7 @@ PASSOS = [
      "fica atrás do seu cartão e peça a abertura do MED. O prazo é de até 80 dias, mas quanto antes, "
      "maior a chance: o banco do golpista bloqueia o que ainda estiver na conta."),
     ("Registre um boletim de ocorrência",
-     "Pode ser pela delegacia online do seu estado, sem sair de casa. Leve o texto pronto abaixo."),
+     "Pode ser pela delegacia online do seu estado, sem sair de casa. O Desconfia.AI monta um texto pronto para você usar."),
     ("Guarde as provas",
      "Comprovante do Pix, prints da conversa, o anúncio ou a mensagem, e os dados de quem recebeu o dinheiro."),
     ("Proteja suas contas",

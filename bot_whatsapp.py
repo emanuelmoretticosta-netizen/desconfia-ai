@@ -68,7 +68,7 @@ FAIXAS = {
 
 BOAS_VINDAS = (
     "Olá! Eu sou o *Desconfia.AI*, a IA que desconfia por você. 🛡️\n\n"
-    "Recebeu uma mensagem estranha pedindo dinheiro, Pix ou dados? *Encaminhe ela para mim* "
+    "Recebeu uma mensagem estranha pedindo dinheiro, Pix ou dados? *Encaminhe a mensagem para mim* "
     "(ou copie e cole aqui). Também pode me contar o que aconteceu, por exemplo uma ligação.\n\n"
     "Eu mostro os sinais de golpe e o que fazer. Não dou veredito: na dúvida, confirme sempre "
     "pelo canal oficial.\n\n"

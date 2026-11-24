@@ -3,11 +3,13 @@
 #
 # Idade do site: perguntamos ao registro oficial de domínios (protocolo RDAP)
 # quando o endereço foi registrado. Para sites .br, a fonte é o Registro.br.
-# Para os outros (.com, .net...), o rdap.org indica o registro oficial certo.
+# Para .com e .net, perguntamos direto à Verisign, que administra essas terminações.
+# Para os outros, o rdap.org indica o registro oficial certo.
 #
 # Para testar sozinho (não gasta crédito da OpenAI):  python verificacoes.py
 
 import json
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -41,9 +43,19 @@ def dominio_registravel(site):
     return ".".join(partes[-2:])
 
 
+# Registros oficiais consultados diretamente (lista oficial da IANA: data.iana.org/rdap/dns.json)
+REGISTROS_DIRETOS = {
+    "com": "https://rdap.verisign.com/com/v1/domain/",
+    "net": "https://rdap.verisign.com/net/v1/domain/",
+}
+
+
 def _endereco_da_consulta(dominio):
     if dominio.endswith(".br"):
         return "https://rdap.registro.br/domain/" + dominio, "Registro.br"
+    terminacao = dominio.rsplit(".", 1)[-1]
+    if terminacao in REGISTROS_DIRETOS:
+        return REGISTROS_DIRETOS[terminacao] + dominio, "registro oficial do domínio (RDAP)"
     return "https://rdap.org/domain/" + dominio, "registro oficial do domínio (RDAP)"
 
 
@@ -72,26 +84,38 @@ def consultar_dominio(site, hoje=None):
     url, nome_fonte = _endereco_da_consulta(dominio)
     resultado = {"site": dominio, "fonte": nome_fonte, "link": url,
                  "situacao": "sem_resposta", "registrado_em": None, "dias": None}
-    pedido = urllib.request.Request(url, headers={
-        "Accept": "application/rdap+json, application/json",
-        "User-Agent": "Desconfia.AI (projeto Hack Brasil 2026)",
-    })
-    try:
-        with urllib.request.urlopen(pedido, timeout=TEMPO_LIMITE) as resposta:
-            dados = json.loads(resposta.read().decode("utf-8"))
-        criado = data_de_registro(dados)
-        resultado["situacao"] = "registrado"
-        if criado:
-            resultado["registrado_em"] = criado.isoformat()
-            resultado["dias"] = ((hoje or date.today()) - criado).days
-    except urllib.error.HTTPError as erro:
-        # 404 do registro oficial = ninguém registrou esse endereço.
-        # 404 do próprio rdap.org = ele não conhece o registro desse tipo de site.
-        veio_do_registro = urllib.parse.urlparse(erro.geturl() or url).hostname != "rdap.org"
-        if erro.code == 404 and veio_do_registro:
-            resultado["situacao"] = "nao_registrado"
-    except Exception:
-        pass  # sem internet, demora demais ou resposta estranha: não afirmamos nada
+    # A conexão às vezes cai na hora (erro 10054). Tentamos de novo, alternando entre o registro
+    # direto e o rdap.org, sem passar do tempo limite total.
+    enderecos = [url, "https://rdap.org/domain/" + dominio] if "rdap.org" not in url else [url]
+    prazo = time.monotonic() + TEMPO_LIMITE
+    for tentativa in range(3):
+        restante = prazo - time.monotonic()
+        if restante <= 0.5:
+            break
+        endereco = enderecos[tentativa % len(enderecos)]
+        pedido = urllib.request.Request(endereco, headers={
+            "Accept": "application/rdap+json, application/json",
+            "User-Agent": "Desconfia.AI (projeto Hack Brasil 2026)",
+        })
+        try:
+            with urllib.request.urlopen(pedido, timeout=restante) as resposta:
+                dados = json.loads(resposta.read().decode("utf-8"))
+            criado = data_de_registro(dados)
+            resultado["situacao"] = "registrado"
+            if criado:
+                resultado["registrado_em"] = criado.isoformat()
+                resultado["dias"] = ((hoje or date.today()) - criado).days
+            break
+        except urllib.error.HTTPError as erro:
+            # 404 do registro oficial = ninguém registrou esse endereço.
+            # 404 do próprio rdap.org = ele não conhece o registro desse tipo de site.
+            veio_do_registro = urllib.parse.urlparse(erro.geturl() or endereco).hostname != "rdap.org"
+            if erro.code == 404 and veio_do_registro:
+                resultado["situacao"] = "nao_registrado"
+                break
+        except Exception:
+            pass  # conexão caiu, sem internet ou resposta estranha: tenta de novo ou não afirma nada
+        time.sleep(0.3)
 
     if resultado["situacao"] != "sem_resposta":
         _guardados[dominio] = resultado

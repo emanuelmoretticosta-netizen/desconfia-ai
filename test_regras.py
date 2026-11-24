@@ -115,3 +115,23 @@ def test_modo_de_seguranca_sem_ia(monkeypatch):
     assert golpe["quem_diz_ser"] == "Valores a Receber (Banco Central)"
     normal = analise.analisar(EXEMPLO_LEGITIMO)
     assert normal["modo"] == "seguranca" and normal["nivel_de_risco"] == "baixo"
+
+
+def test_exemplos_prontos_do_app():
+    from analise import EXEMPLO_CENTRAL, EXEMPLO_EMPRESTIMO, EXEMPLO_MARCA, EXEMPLO_PARENTE
+    assert "parente" in categorias(EXEMPLO_PARENTE)
+    assert "central" in categorias(EXEMPLO_CENTRAL)
+    assert "emprestimo" in categorias(EXEMPLO_EMPRESTIMO)
+    assert "imitacao" in categorias(EXEMPLO_MARCA)
+
+
+def test_sinais_em_formato_diferente_nao_quebram():
+    ficha = {"sinais": ["Pede uma taxa para liberar dinheiro.", {"sinal": "Cria pressa.", "trecho": "só hoje"}, 3, None]}
+    assert [i["sinal"] for i in juntar_sinais(ficha)] == ["Pede uma taxa para liberar dinheiro.", "Cria pressa."]
+
+
+def test_falsa_caridade_por_link_desconhecido():
+    assert "doacao" in categorias("Participe da minha vaquinha: http://vaquinha-casa-propria.com/")
+    assert "doacao" in categorias("Ajude doando qualquer quantia: https://ajude-o-rafael.com/")
+    assert "doacao" not in categorias("Participe da minha vaquinha: https://www.vakinha.com.br/123456")
+    assert "doacao" not in categorias("Ajude doando qualquer quantia para a festa da escola.")

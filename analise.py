@@ -14,6 +14,14 @@
 #
 # Como rodar os testes (na pasta do projeto):  python analise.py
 
+try:
+    # No Windows, usa os certificados do próprio sistema (evita erro de certificado quando um
+    # antivírus ou a rede inspecionam as conexões). No servidor, segue sem ele.
+    import truststore
+    truststore.inject_into_ssl()
+except ImportError:
+    pass
+
 import json
 import os
 import re
@@ -22,7 +30,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from marcas import MARCAS, frase as frase_imitacao, imitacoes
-from verificacoes import consultar_sites, sinais_dos_sites
+from verificacoes import consultar_sites, dominio_registravel, sinais_dos_sites
 
 load_dotenv()  # lê a chave do arquivo .env (que NUNCA vai para o GitHub)
 MODELO = os.getenv("MODELO", "gpt-4o-mini")
@@ -67,9 +75,19 @@ Responda APENAS com um JSON neste formato:
 
 Regras:
 - Nunca diga que algo é seguro nem que é golpe com certeza. Fale em sinais e nível de risco.
+- Escreva em português do Brasil correto (concordância, acentuação e pontuação), com frases curtas e
+  palavras simples.
 - "quem_diz_ser" NÃO é quem recebe o dinheiro. Se a mensagem diz ser do Banco Central mas
   pede Pix para outra chave, o Banco Central vai em "quem_diz_ser".
 - Só aponte sinais que aparecem de fato na mensagem.
+- Liste TODOS os sinais de golpe que aparecem, um por item. Cada item de "sinais" é sempre um objeto
+  com "sinal" e "trecho", nunca uma frase solta. Confira sempre cada um destes pontos:
+  pedido de pagamento, taxa ou depósito; pedido de senha, código, CPF, cartão ou "confirmação de dados";
+  link ou site (nome estranho, encurtado, que imita uma marca ou que não é o site oficial de quem diz
+  mandar a mensagem); pressa ou prazo curto; ameaça de bloqueio, cancelamento, multa ou processo;
+  promessa de dinheiro fácil, prêmio ou ganho garantido; diferença entre quem diz mandar a mensagem e
+  quem recebe o dinheiro; pedido para ligar para um número da própria mensagem; pedido para mudar de
+  conversa ou instalar aplicativo.
 - Cada "sinal" deve ser uma frase completa, adaptada à situação da mensagem, dizendo o que ela
   faz e por que isso é suspeito. Nunca escreva só um rótulo curto como "pague a taxa".
 - Não repita o mesmo sinal com palavras diferentes.
@@ -92,6 +110,10 @@ NOMES_OFICIAIS = [
 # Encurtadores de link: escondem o endereço verdadeiro do site
 ENCURTADORES = {"bit.ly", "tinyurl.com", "cutt.ly", "encurtador.com.br", "is.gd", "t.co", "rebrand.ly", "shre.ink", "abre.ai"}
 
+# Plataformas conhecidas de vaquinha e doação: um pedido de doação por elas não dispara a regra
+PLATAFORMAS_DOACAO = {"vakinha.com.br", "kickante.com.br", "catarse.me", "benfeitoria.com", "apoia.se",
+                      "gofundme.com", "abacashi.com", "voaa.me"}
+
 # Encontra domínios de sites no texto (ex.: www.exemplo.com.br -> exemplo.com.br)
 PADRAO_SITE = re.compile(r"(?:https?://)?(?:www\.)?((?:[a-z0-9-]+\.)+[a-z]{2,})")
 
@@ -101,9 +123,13 @@ PALAVRAS_DA_CATEGORIA = {
     "ia": r"\bia\b|intelig[eê]ncia artificial|instru[cç]",
     "parente": r"troc(ou|ei|ar) de (n[uú]mero|celular|telefone)|n[uú]mero novo|novo n[uú]mero|parente|familiar",
     "imitacao": r"imita|parecid|erro de digita|falsifica|nome d[aeo] (loja|banco|marca|empresa)",
+    "marca_site": r"n[aã]o [eé] (d?o )?site oficial|n[aã]o pertence|site n[aã]o oficial|endere[cç]o n[aã]o oficial",
+    "ameaca": r"bloque|suspens|suspend|cancel|desativ|encerr|multa|processo",
+    "dados_link": r"(confirm|atualiz|valid|regulariz|recadastr)\w*[^.]{0,40}(dados|cadastro|conta)",
     "conta_segura": r"conta segura|conta de seguran[cç]a|transferir (o |seu |todo o )?(saldo|dinheiro)",
     "central": r"central de (seguran|atendimento|relacionamento)|falsa central|0800|n[aã]o reconhec",
     "emprestimo": r"empr[eé]stimo|cr[eé]dito",
+    "doacao": r"doa[cç]|\bdoar\b|doando|vaquinha|campanha|arrecada",
     "taxa": r"taxa|tarifa|pagamento antecipado|pagamento para liberar|pague",
     "dados": r"cpf|nome da (sua )?m[aã]e|senha|c[oó]digo|dados|informa[cç][oõ]es pessoais",
     "ganho": r"garantid|rendimento|lucro|retorno",
@@ -266,7 +292,46 @@ def checar_regras(texto, sites):
     for achado in imitacoes(sites):
         achou("imitacao", frase_imitacao(achado), "alto")
 
-    if re.search(r"s[oó] hoje|somente hoje|[uú]ltimas horas|expira|urgente|imediatamente", t):
+    # Sites que não são oficiais (nem do governo, nem de uma marca conhecida)
+    oficiais = {o for _, (_, lista) in MARCAS.items() for o in lista}
+    suspeitos = []
+    for site in sorted(sites):
+        dominio = dominio_registravel(site) or site
+        if site in ENCURTADORES or dominio in oficiais or dominio == "gov.br" or dominio.endswith(".gov.br"):
+            continue
+        suspeitos.append(dominio)
+
+    # Pede para confirmar ou atualizar dados num link da própria mensagem
+    if suspeitos and re.search(r"(confirm|atualiz|valid|regulariz|recadastr|desbloque)\w*[^.!?]{0,40}"
+                               r"(dados|cadastro|conta|identidade|cpf|cart[aã]o)", t):
+        achou("dados_link", "Pede para confirmar ou atualizar seus dados num site enviado na própria mensagem. "
+                            "Bancos e empresas não pedem isso por link: entre sempre pelo app ou site oficial.", "alto")
+
+    # Falsa caridade: pede doação por um link de site desconhecido (biblioteca da equipe, G_06)
+    if [d for d in suspeitos if d not in PLATAFORMAS_DOACAO] and re.search(
+            r"\b(doe|doar|doando|doa[cç][aã]o|doa[cç][oõ]es|vaquinha|contribua|arrecad\w*)\b", t):
+        achou("doacao", "Pede doação por um link de site desconhecido. Antes de doar, confira se a campanha está "
+                        "numa plataforma conhecida e se o nome de quem recebe o dinheiro bate com a história.", "medio")
+
+    # Usa o nome de uma marca conhecida, mas o link não é o site oficial dela
+    imitados = {a["site"] for a in imitacoes(sites)}
+    for marca, (_, sites_oficiais) in MARCAS.items():
+        if marca == "Caixa" or not re.search(r"\b" + re.escape(marca.lower()) + r"\b", t):
+            continue
+        for dominio in suspeitos:
+            if dominio not in imitados:
+                achou("marca_site", f"A mensagem usa o nome \"{marca}\", mas o link {dominio} não é o site oficial "
+                                    f"({sites_oficiais[0]}).", "alto")
+        break
+
+    # Ameaça bloquear ou cancelar algo, junto com link, número para ligar ou pedido de pagamento
+    if re.search(r"bloquei|bloquead|suspens|suspend|cancelad|cancelament|desativad|encerrad|\bmulta\b", t) \
+            and (suspeitos or re.search(r"\bligue|\bligar|0800", t) or pede_pagamento) \
+            and not re.search(r"(nunca|n[aã]o)[^.!?]{0,60}(bloque|suspend|cancel|desativ|multa)", t):
+        achou("ameaca", "Ameaça bloquear, cancelar ou multar algo seu para você agir com pressa, sem pensar.", "medio")
+
+    if re.search(r"s[oó] hoje|somente hoje|[uú]ltimas horas|expira|urgente|imediatamente|"
+                 r"em at[eé] \d+ ?(h\b|hora|minuto)|pr[oó]xim[ao]s \d+ ?(hora|minuto)", t):
         achou("pressa", "Cria pressa para você não pensar com calma.", "medio")
 
     return sinais
@@ -274,6 +339,17 @@ def checar_regras(texto, sites):
 
 def normalizar(texto):
     return re.sub(r"\s+", " ", texto or "").strip().lower()
+
+
+def padronizar_sinais(sinais):
+    """A IA às vezes devolve os sinais como frases soltas: deixa tudo no formato {sinal, trecho}."""
+    padronizados = []
+    for s in sinais if isinstance(sinais, list) else []:
+        if isinstance(s, str) and s.strip():
+            padronizados.append({"sinal": s.strip(), "trecho": None})
+        elif isinstance(s, dict) and s.get("sinal"):
+            padronizados.append({"sinal": str(s["sinal"]), "trecho": s.get("trecho") or None})
+    return padronizados
 
 
 def trecho_existe(trecho, mensagem):
@@ -293,6 +369,8 @@ def analisar(mensagem):
     if ficha is None:
         modo = "seguranca"
         ficha = extrair_sem_ia(mensagem)
+
+    ficha["sinais"] = padronizar_sinais(ficha.get("sinais"))
 
     # A IA às vezes "cita" um trecho que não está na mensagem: nesse caso, tiramos o trecho
     for s in ficha.get("sinais") or []:
@@ -347,8 +425,8 @@ def juntar_sinais(ficha):
         itens.append({"categoria": regra["categoria"], "sinal": regra["sinal"], "trecho": None})
 
     cobertas = {item["categoria"] for item in itens}
-    for s in ficha.get("sinais") or []:
-        sinal, trecho = s.get("sinal"), s.get("trecho")
+    for s in padronizar_sinais(ficha.get("sinais")):
+        sinal, trecho = s["sinal"], s["trecho"]
         if not sinal:
             continue
         categoria = categoria_do_texto(f"{sinal} {trecho or ''}")
@@ -404,6 +482,34 @@ EXEMPLO_ALERTA = (
     "Alerta do Banco Central: o Valores a Receber é gratuito e não cobra taxa. Consulte "
     "apenas em valoresareceber.bcb.gov.br. Não pague nada a ninguém para receber."
 )
+EXEMPLO_PARENTE = (
+    "Oi mãe, troquei de número, esse é o meu novo, salva aí. Tô precisando pagar um boleto hoje "
+    "e o app do meu banco travou. Consegue fazer um Pix de R$ 950 pra mim? Amanhã te devolvo."
+)
+EXEMPLO_CENTRAL = (
+    "BANCO: Compra aprovada de R$ 2.890,00 no seu cartão final 4421. Não reconhece? Ligue agora "
+    "para a nossa central de segurança: 0800 000 0000."
+)
+EXEMPLO_EMPRESTIMO = (
+    "Parabéns! Seu empréstimo de R$ 15.000 foi aprovado, mesmo com nome sujo. Para liberar o "
+    "crédito hoje, pague a taxa de seguro de R$ 350 via Pix para a chave credito.facil.liberacao@gmail.com."
+)
+EXEMPLO_MARCA = (
+    "Nubank: identificamos um acesso suspeito na sua conta. Para evitar o bloqueio, confirme seus "
+    "dados em nubanck-seguranca.com em até 2 horas."
+)
+
+# Exemplos prontos mostrados no app (nome do botão, mensagem). Todos fictícios.
+EXEMPLOS_PRONTOS = [
+    ("Golpe do Valores a Receber", EXEMPLO_GOLPE),
+    ("Falso parente", EXEMPLO_PARENTE),
+    ("Falsa central (SMS)", EXEMPLO_CENTRAL),
+    ("Empréstimo com taxa", EXEMPLO_EMPRESTIMO),
+    ("Site que imita banco", EXEMPLO_MARCA),
+    ("Tenta enganar a IA", EXEMPLO_ENGANAR_IA),
+    ("Mensagem normal do banco", EXEMPLO_LEGITIMO),
+    ("Alerta verdadeiro", EXEMPLO_ALERTA),
+]
 
 
 if __name__ == "__main__":

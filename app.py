@@ -14,6 +14,16 @@ import streamlit as st
 
 st.set_page_config(page_title="Desconfia.AI", page_icon="🛡️", layout="centered")
 
+# Avisa o navegador que a página é em português, para o tradutor automático do Chrome não
+# "traduzir" o texto e estragar as palavras (o Streamlit marca a página como inglês).
+import streamlit.components.v1 as components  # noqa: E402
+
+components.html(
+    "<script>const raiz = window.parent.document.documentElement;"
+    "raiz.lang = 'pt-BR'; raiz.setAttribute('translate', 'no');</script>",
+    height=0,
+)
+
 # A chave vem do arquivo .env (no computador) ou dos Secrets (no Streamlit Cloud)
 if not os.getenv("OPENAI_API_KEY"):
     try:
@@ -21,7 +31,7 @@ if not os.getenv("OPENAI_API_KEY"):
     except Exception:
         pass
 
-from analise import EXEMPLO_GOLPE, EXEMPLO_LEGITIMO, analisar, juntar_sinais  # noqa: E402
+from analise import EXEMPLOS_PRONTOS, analisar, juntar_sinais  # noqa: E402
 from verificacoes import texto_dos_dias  # noqa: E402
 from ja_paguei import (  # noqa: E402
     DEPOIS, FONTES, PASSOS, preencher_a_partir_da_analise, texto_para_o_banco, texto_para_o_bo,
@@ -30,7 +40,7 @@ from ja_paguei import (  # noqa: E402
 MAX_CARACTERES = 3000   # mensagens maiores são cortadas, para proteger os créditos
 MAX_ANALISES = 15       # limite de análises por visita, contra abuso da demo
 MAX_POR_DIA = 400      # limite somando todas as visitas do dia, para proteger os créditos
-EXEMPLOS = {EXEMPLO_GOLPE, EXEMPLO_LEGITIMO}
+EXEMPLOS = {texto for _, texto in EXEMPLOS_PRONTOS}
 
 # ---------- Aparência ----------
 st.markdown(
@@ -181,7 +191,7 @@ def mostrar_ja_paguei():
                            format="DD/MM/YYYY", key="pg_data")
     destino = st.text_input("Para quem foi o Pix? (nome ou chave Pix)", value=base["destino"], key="pg_destino")
     relato = st.text_area("Como foi o golpe? (resumo curto)", value=base["relato"], height=90, key="pg_relato",
-                          placeholder="Ex.: Recebi uma mensagem dizendo que eu tinha dinheiro para receber e pagaram uma taxa.")
+                          placeholder="Ex.: Recebi uma mensagem dizendo que eu tinha dinheiro para receber e paguei uma taxa.")
 
     st.markdown("**Para o banco** (cole no chat do app ou leia para o atendente):")
     st.code(texto_para_o_banco(valor, quando, destino, relato), language=None, wrap_lines=True)
@@ -196,7 +206,9 @@ def mostrar_ja_paguei():
 
 
 def usar_exemplo(texto):
+    """Coloca o exemplo na caixa e já analisa, sem precisar de outro clique."""
     st.session_state.mensagem = texto
+    st.session_state.analisar_exemplo = True
 
 
 # ---------- Topo ----------
@@ -222,11 +234,13 @@ mensagem = st.text_area(
     placeholder="Cole aqui a mensagem do WhatsApp, SMS ou e-mail que você recebeu. Também pode contar o que aconteceu, por exemplo uma ligação.",
 )
 
-col1, col2 = st.columns(2)
-col1.button("Ver exemplo de golpe", on_click=usar_exemplo, args=(EXEMPLO_GOLPE,), width="stretch")
-col2.button("Ver exemplo de mensagem normal", on_click=usar_exemplo, args=(EXEMPLO_LEGITIMO,), width="stretch")
-
 analisar_agora = st.button("Analisar mensagem", type="primary", width="stretch")
+analisar_agora = analisar_agora or st.session_state.pop("analisar_exemplo", False)
+
+st.caption("Não tem uma mensagem agora? Clique num exemplo pronto (todos são fictícios):")
+colunas = st.columns(2)
+for i, (nome, texto_exemplo) in enumerate(EXEMPLOS_PRONTOS):
+    colunas[i % 2].button(nome, key=f"exemplo_{i}", on_click=usar_exemplo, args=(texto_exemplo,), width="stretch")
 
 # ---------- Análise ----------
 if analisar_agora:
@@ -300,7 +314,7 @@ if ficha:
                 f'{e(v["fonte"])}</a></span></div>'
             )
         st.markdown("".join(partes), unsafe_allow_html=True)
-        st.caption("Um site antigo não quer dizer que seja confiável: golpistas também usam sites invadidos ou conhecidos.")
+        st.caption("Um site antigo não quer dizer que seja confiável: golpistas também usam sites antigos que foram invadidos.")
 
     if ficha["nivel_de_risco"] in ("alto", "medio"):
         st.button("Já fiz o pagamento. E agora?", on_click=ir_para_ja_paguei, width="stretch")
