@@ -31,7 +31,7 @@ if not os.getenv("OPENAI_API_KEY"):
     except Exception:
         pass
 
-from analise import EXEMPLOS_PRONTOS, analisar, juntar_sinais  # noqa: E402
+from analise import EXEMPLOS_PRONTOS, analisar, juntar_sinais, ler_imagem  # noqa: E402
 from verificacoes import texto_dos_dias  # noqa: E402
 from ja_paguei import (  # noqa: E402
     DEPOIS, FONTES, PASSOS, preencher_a_partir_da_analise, texto_para_o_banco, texto_para_o_bo,
@@ -40,6 +40,7 @@ from ja_paguei import (  # noqa: E402
 MAX_CARACTERES = 3000   # mensagens maiores são cortadas, para proteger os créditos
 MAX_ANALISES = 15       # limite de análises por visita, contra abuso da demo
 MAX_POR_DIA = 400      # limite somando todas as visitas do dia, para proteger os créditos
+MAX_PRINT_MB = 8       # tamanho máximo do print enviado
 EXEMPLOS = {texto for _, texto in EXEMPLOS_PRONTOS}
 
 # ---------- Aparência ----------
@@ -51,6 +52,7 @@ st.markdown(
       h1 { letter-spacing: -0.02em; }
       .sub { color: #4d5b6e; font-size: 1.1rem; margin: -0.4rem 0 1.2rem; }
       .faixa { border-radius: 14px; padding: 18px 20px; margin: 8px 0 18px; border: 2px solid; }
+      #laudo { scroll-margin-top: 90px; }  /* a barra fixa do topo não cobre o título ao rolar */
       .faixa h2 { margin: 0 0 6px; font-size: 1.6rem; }
       .faixa p { margin: 0; font-size: 1.05rem; }
       .alto  { background: #fbe9ec; border-color: #b3122a; color: #5c0816; }
@@ -70,6 +72,12 @@ st.markdown(
       .passos strong { display: block; font-size: 1.08rem; }
       .passos span { color: #4d5b6e; }
       .dados td:first-child { color: #4d5b6e; white-space: nowrap; }
+      [data-testid="stFileUploaderDropzoneInstructions"] > div > span,
+      [data-testid="stFileUploaderDropzoneInstructions"] > div > small { display: none; }
+      [data-testid="stFileUploaderDropzoneInstructions"] > div::before {
+        content: "Arraste o print aqui ou toque em Escolher print"; }
+      [data-testid="stFileUploaderDropzone"] [data-testid="stBaseButton-secondary"] > * { display: none !important; }
+      [data-testid="stFileUploaderDropzone"] [data-testid="stBaseButton-secondary"]::after { content: "Escolher print"; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -205,77 +213,74 @@ def mostrar_ja_paguei():
     st.button("Voltar e analisar uma mensagem", on_click=voltar_para_analise, width="stretch")
 
 
+def ler_print(arquivo):
+    """Diminui o print (economiza créditos) e pede à IA para transcrever o texto."""
+    conteudo = arquivo.getvalue()
+    if len(conteudo) > MAX_PRINT_MB * 1024 * 1024:
+        return None
+    try:
+        from io import BytesIO
+        from PIL import Image
+        imagem = Image.open(BytesIO(conteudo)).convert("RGB")
+        imagem.thumbnail((1600, 1600))
+        saida = BytesIO()
+        imagem.save(saida, format="JPEG", quality=85)
+        conteudo = saida.getvalue()
+    except Exception:
+        return None  # arquivo que não é imagem de verdade
+    return ler_imagem(conteudo, "image/jpeg")
+
+
+def limpar_tudo():
+    """Apaga a mensagem, o print e o laudo, para começar de novo."""
+    st.session_state.mensagem = ""
+    st.session_state.versao_print = st.session_state.get("versao_print", 0) + 1
+    st.session_state.resultado = None
+    st.session_state.texto_do_print = None
+
+
+def iniciar_analise():
+    """Marca que uma análise começou: até ela terminar, botões e campos ficam travados."""
+    st.session_state.analisando = True
+
+
 def usar_exemplo(texto):
     """Coloca o exemplo na caixa e já analisa, sem precisar de outro clique."""
     st.session_state.mensagem = texto
     st.session_state.analisar_exemplo = True
+    st.session_state.analisando = True
 
 
-# ---------- Topo ----------
-st.title("Desconfia.AI")
-st.markdown(
-    '<p class="sub">Recebeu uma oferta de dinheiro estranha? Cole a mensagem aqui ou conte o que aconteceu. '
-    "A gente aponta os sinais de golpe e diz o que fazer.</p>",
-    unsafe_allow_html=True,
-)
+def avisar(texto, tipo="aviso"):
+    """Guarda um aviso para mostrar quando a tela voltar (depois da análise)."""
+    st.session_state.aviso = (tipo, texto)
+    st.session_state.resultado = None
 
-modo = st.radio("O que aconteceu?", [MODO_ANALISE, MODO_PAGUEI], key="modo", horizontal=True,
-                label_visibility="collapsed")
-if modo == MODO_PAGUEI:
-    mostrar_ja_paguei()
-    rodape()
-    st.stop()
 
-mensagem = st.text_area(
-    "Mensagem recebida",
-    key="mensagem",
-    height=180,
-    max_chars=MAX_CARACTERES,
-    placeholder="Cole aqui a mensagem do WhatsApp, SMS ou e-mail que você recebeu. Também pode contar o que aconteceu, por exemplo uma ligação.",
-)
-
-analisar_agora = st.button("Analisar mensagem", type="primary", width="stretch")
-analisar_agora = analisar_agora or st.session_state.pop("analisar_exemplo", False)
-
-st.caption("Não tem uma mensagem agora? Clique num exemplo pronto (todos são fictícios):")
-colunas = st.columns(2)
-for i, (nome, texto_exemplo) in enumerate(EXEMPLOS_PRONTOS):
-    colunas[i % 2].button(nome, key=f"exemplo_{i}", on_click=usar_exemplo, args=(texto_exemplo,), width="stretch")
-
-# ---------- Análise ----------
-if analisar_agora:
-    texto = (mensagem or "").strip()
-    usos = st.session_state.get("usos", 0)
-
-    if not texto:
-        st.warning("Cole uma mensagem na caixa acima para analisar.")
-    elif usos >= MAX_ANALISES:
-        st.warning("Você chegou ao limite de análises desta visita. Recarregue a página mais tarde para continuar.")
-    elif texto not in EXEMPLOS and not pode_analisar_hoje():
-        st.warning("O Desconfia.AI atingiu o limite de análises de hoje. Volte amanhã ou use os exemplos.")
-    else:
-        try:
-            with st.spinner("Analisando a mensagem..."):
-                ficha = analisar_mensagem(texto)
-            st.session_state.usos = usos + 1
-            if texto not in EXEMPLOS:
-                contador_do_dia()["total"] += 1
-            st.session_state.resultado = ficha
-        except Exception:
-            st.error("Não conseguimos analisar agora. Tente de novo em alguns segundos.")
-
-ficha = st.session_state.get("resultado")
-if ficha:
+def mostrar_laudo(ficha):
+    """Desenha o laudo de uma mensagem analisada."""
     titulo, frase = FAIXAS[ficha["nivel_de_risco"]]
     sem_ia = ficha.get("modo") == "seguranca"
     if sem_ia and ficha["nivel_de_risco"] == "baixo":
         frase = ("Nossas regras fixas não encontraram sinais clássicos de golpe, mas a análise completa está "
                  "indisponível agora. Não pague nada antes de confirmar pelo canal oficial.")
     st.markdown(
-        f'<div class="faixa {ficha["nivel_de_risco"]}" role="status">'
+        f'<div class="faixa {ficha["nivel_de_risco"]}" id="laudo" role="status">'
         f"<h2>{e(titulo)}</h2><p>{e(frase)}</p></div>",
         unsafe_allow_html=True,
     )
+    rolar = st.session_state.pop("rolar_para_laudo", None)
+    if rolar:
+        # Leva a tela até o laudo (no celular, o resultado pode ficar fora da tela)
+        components.html(
+            f"<script>/* {rolar} */ setTimeout(function () {{"
+            "const el = window.parent.document.getElementById('laudo');"
+            "if (el) { el.scrollIntoView({behavior: 'smooth', block: 'start'}); } }, 300);</script>",
+            height=0,
+        )
+    if st.session_state.get("texto_do_print"):
+        with st.expander("Texto que lemos no print"):
+            st.text(st.session_state.texto_do_print)
     if sem_ia:
         st.info("**Modo de segurança.** A inteligência artificial está indisponível agora, então este laudo usa "
                 "só as nossas regras fixas, a consulta oficial de domínios e a detecção de sites que imitam "
@@ -332,4 +337,119 @@ if ficha:
         st.subheader("O que encontramos na mensagem")
         st.markdown(f'<table class="dados">{"".join(linhas)}</table>', unsafe_allow_html=True)
 
+
+def executar_analise(mensagem, veio_de_exemplo, chave_print):
+    """Lê o print (se houver), analisa e guarda o resultado. Roda com a tela travada."""
+    texto = (mensagem or "").strip()
+    usos = st.session_state.get("usos", 0)
+    arquivo = None if veio_de_exemplo else st.session_state.get(chave_print)
+
+    if not texto and arquivo is None:
+        avisar("Cole uma mensagem na caixa acima ou envie um print para analisar.")
+        return
+    if usos >= MAX_ANALISES:
+        avisar("Você chegou ao limite de análises desta visita. Recarregue a página mais tarde para continuar.")
+        return
+    gasta_credito = arquivo is not None or texto not in EXEMPLOS
+    if gasta_credito and not pode_analisar_hoje():
+        avisar("O Desconfia.AI atingiu o limite de análises de hoje. Volte amanhã ou use os exemplos.")
+        return
+
+    # Conta no limite já no começo: assim ninguém gasta créditos cancelando análises no meio
+    st.session_state.usos = usos + 1
+    if gasta_credito:
+        contador_do_dia()["total"] += 1
+
+    lido = None
+    if arquivo is not None:
+        with st.spinner("Lendo o print..."):
+            lido = ler_print(arquivo)
+        if lido is None:
+            avisar("Não conseguimos ler esse print agora. Confira se é uma imagem de até "
+                   f"{MAX_PRINT_MB} MB, ou copie o texto da mensagem e cole na caixa acima.")
+            return
+        if not lido:
+            avisar("Não encontramos texto nesse print. Tente uma foto mais nítida ou cole o texto na caixa acima.")
+            return
+        texto = f"{texto}\n{lido}".strip()
+
+    try:
+        with st.spinner("Analisando a mensagem..."):
+            ficha = analisar_mensagem(texto)
+    except Exception:
+        avisar("Não conseguimos analisar agora. Tente de novo em alguns segundos.", "erro")
+        return
+    st.session_state.resultado = ficha
+    st.session_state.texto_do_print = lido
+    if lido:  # o print já foi usado: na próxima mensagem, ele não entra junto
+        st.session_state.versao_print = st.session_state.get("versao_print", 0) + 1
+    st.session_state.rolar_para_laudo = st.session_state.usos
+
+
+# ---------- Topo ----------
+st.title("Desconfia.AI")
+st.markdown(
+    '<p class="sub">Recebeu uma oferta de dinheiro estranha? Cole a mensagem aqui ou conte o que aconteceu. '
+    "A gente aponta os sinais de golpe e diz o que fazer.</p>",
+    unsafe_allow_html=True,
+)
+
+ocupado = st.session_state.get("analisando", False)  # durante a análise, tudo fica travado
+
+modo = st.radio("O que aconteceu?", [MODO_ANALISE, MODO_PAGUEI], key="modo", horizontal=True,
+                label_visibility="collapsed", disabled=ocupado)
+if modo == MODO_PAGUEI:
+    mostrar_ja_paguei()
+    rodape()
+    st.stop()
+
+mensagem = st.text_area(
+    "Mensagem recebida",
+    key="mensagem",
+    height=180,
+    max_chars=MAX_CARACTERES,
+    disabled=ocupado,
+    placeholder="Cole aqui a mensagem do WhatsApp, SMS ou e-mail que você recebeu. Também pode contar o que aconteceu, por exemplo uma ligação.",
+)
+
+CHAVE_PRINT = f"print_{st.session_state.get('versao_print', 0)}"
+st.file_uploader(
+    "Ou envie um print da mensagem",
+    type=["png", "jpg", "jpeg", "webp"],
+    key=CHAVE_PRINT,
+    disabled=ocupado,
+    help="A IA lê o texto do print e analisa. O print não fica guardado. Evite prints com senhas ou documentos.",
+)
+
+coluna_analisar, coluna_limpar = st.columns([3, 1])
+coluna_analisar.button("Analisar mensagem", type="primary", width="stretch", on_click=iniciar_analise,
+                       disabled=ocupado)
+coluna_limpar.button("Limpar", on_click=limpar_tudo, width="stretch", disabled=ocupado)
+
+area_laudo = st.container()  # o laudo aparece aqui, logo abaixo dos botões
+
+st.caption("Não tem uma mensagem agora? Clique num exemplo pronto (todos são fictícios):")
+colunas = st.columns(2)
+for i, (nome, texto_exemplo) in enumerate(EXEMPLOS_PRONTOS):
+    colunas[i % 2].button(nome, key=f"exemplo_{i}", on_click=usar_exemplo, args=(texto_exemplo,),
+                          width="stretch", disabled=ocupado)
+
 rodape()
+
+# ---------- Análise ----------
+# A tela inteira já foi desenhada com tudo travado. Só agora a análise roda; no fim, a tela
+# é redesenhada com os botões liberados e o laudo no lugar.
+if ocupado:
+    with area_laudo:
+        try:
+            executar_analise(mensagem, st.session_state.pop("analisar_exemplo", False), CHAVE_PRINT)
+        finally:
+            st.session_state.analisando = False
+    st.rerun()
+
+with area_laudo:
+    aviso = st.session_state.pop("aviso", None)
+    if aviso:
+        (st.error if aviso[0] == "erro" else st.warning)(aviso[1])
+    if st.session_state.get("resultado"):
+        mostrar_laudo(st.session_state.resultado)

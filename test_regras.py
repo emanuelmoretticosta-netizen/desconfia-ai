@@ -135,3 +135,24 @@ def test_falsa_caridade_por_link_desconhecido():
     assert "doacao" in categorias("Ajude doando qualquer quantia: https://ajude-o-rafael.com/")
     assert "doacao" not in categorias("Participe da minha vaquinha: https://www.vakinha.com.br/123456")
     assert "doacao" not in categorias("Ajude doando qualquer quantia para a festa da escola.")
+
+
+def test_print_sem_ia_nao_quebra(monkeypatch):
+    """Sem a IA, o print não é lido (devolve None) e o app pede para colar o texto."""
+    from analise import ler_imagem
+    monkeypatch.setenv("FORCAR_MODO_SEGURANCA", "1")
+    assert ler_imagem(b"qualquer coisa", "image/png") is None
+
+
+def test_sinal_de_site_nao_oficial_nao_repete():
+    ficha = {"sinais_regras": [{"categoria": "marca_site", "risco": "alto",
+                                "sinal": "A mensagem usa o nome \"Correios\", mas o link x.com não é o site oficial."}],
+             "sinais": [{"sinal": "O site mencionado não parece ser o oficial dos Correios.", "trecho": "x.com"}]}
+    assert len(juntar_sinais(ficha)) == 1
+
+
+def test_sinal_de_site_do_governo_nao_repete():
+    ficha = {"sinais_regras": [{"categoria": "site", "risco": "alto",
+                                "sinal": "Usa o nome do governo, mas o site x.com não é um endereço oficial."}],
+             "sinais": [{"sinal": "O site x.com não é oficial do governo.", "trecho": "x.com"}]}
+    assert len(juntar_sinais(ficha)) == 1
