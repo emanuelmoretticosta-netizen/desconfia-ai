@@ -60,6 +60,43 @@ O Desconfia.AI **nunca diz que uma mensagem é segura**: mostra sinais de risco 
 6. **Laudo:** nível de risco, sinais com o trecho da mensagem, o que fazer e as fontes consultadas.
 7. **Modo "já paguei":** passo a passo para pedir o dinheiro de volta pelo **MED** (Mecanismo Especial de Devolução do Pix), na ordem certa, e textos prontos para o banco e para o boletim de ocorrência, já preenchidos com os dados da mensagem analisada. No WhatsApp, basta mandar "já paguei".
 
+## Arquitetura
+
+O caminho de uma mensagem, do envio até o laudo. As regras fixas e as consultas oficiais não dependem da IA: se ela falhar, o laudo sai mesmo assim.
+
+```mermaid
+flowchart TD
+    U["👤 Pessoa<br/>cola a mensagem, envia um print<br/>ou encaminha no WhatsApp"]
+    SITE["🌐 Site (Streamlit)<br/>limite de uso e tela travada<br/>durante a análise"]
+    BOT["💬 Bot do WhatsApp (Flask no Render)<br/>só aceita avisos com<br/>assinatura válida"]
+    PRINT["🖼️ Print<br/>a IA transcreve o texto"]
+    AN["⚙️ analise.py"]
+    IA["🤖 IA (gpt-4o-mini)<br/>extrai quem pede, chave Pix, site e valor<br/>a mensagem é tratada como dado"]
+    REG["📏 Regras fixas<br/>golpes mais relatados<br/>só aumentam o risco"]
+    MARCA["🔎 Site que imita marca<br/>comparação com sites oficiais"]
+    RDAP["🏛️ Registro oficial de domínios<br/>RDAP: idade do site"]
+    SEG["🛟 Modo de segurança<br/>se a IA falhar, o laudo<br/>sai só com regras e consultas"]
+    LAUDO["📋 Laudo<br/>risco = o maior entre IA e regras<br/>sinais com o trecho, o que fazer e fontes"]
+    PAGUEI["🆘 Modo já paguei<br/>passo a passo do MED<br/>e textos prontos"]
+
+    U --> SITE
+    U --> BOT
+    SITE --> PRINT --> AN
+    SITE --> AN
+    BOT --> AN
+    AN --> IA
+    AN --> REG
+    AN --> MARCA
+    AN --> RDAP
+    IA -. "falhou ou demorou" .-> SEG
+    IA --> LAUDO
+    REG --> LAUDO
+    MARCA --> LAUDO
+    RDAP --> LAUDO
+    SEG --> LAUDO
+    LAUDO --> PAGUEI
+```
+
 ## Segurança
 
 Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensada para resistir a ataques:
