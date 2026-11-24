@@ -105,7 +105,7 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 - **Funciona mesmo se a IA cair (modo de segurança):** se a IA ficar fora do ar, sem créditos ou demorar demais, o laudo sai mesmo assim, só com as regras fixas, a consulta oficial de domínios e a detecção de sites que imitam marcas, e avisa a pessoa que a análise está reduzida. Quando nenhuma regra dispara, o app diz para não pagar nada antes de confirmar, para não passar falsa segurança.
 - **Nada de trecho inventado:** todo trecho que a IA cita é conferido no texto original. Se não estiver lá, sai do laudo.
 - **Avisos autenticados:** o servidor do WhatsApp só aceita mensagens com assinatura válida (HMAC-SHA256 da Meta) ou com o segredo combinado com cada serviço.
-- **Proteção contra abuso:** limite de análises por pessoa e por dia, tamanho máximo da mensagem e do print. A análise conta no limite assim que começa, e a tela fica travada até ela terminar, para ninguém gastar créditos clicando sem parar.
+- **Proteção contra abuso:** limite de análises por pessoa e por dia, limite próprio para prints (ler imagem custa mais), tamanho máximo da mensagem e do print. A análise conta no limite assim que começa, e a tela fica travada até ela terminar, para ninguém gastar créditos clicando sem parar.
 - **Proteção da página:** todo texto vindo de fora é escapado antes de aparecer na tela, contra injeção de HTML.
 - **Segredos fora do código:** chaves só em variáveis de ambiente, nunca no repositório.
 - **Privacidade:** não guardamos as mensagens. Os registros do servidor mostram só os 4 últimos dígitos do telefone.

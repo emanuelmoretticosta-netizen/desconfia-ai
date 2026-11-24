@@ -41,6 +41,8 @@ MAX_CARACTERES = 3000   # mensagens maiores são cortadas, para proteger os cré
 MAX_ANALISES = 15       # limite de análises por visita, contra abuso da demo
 MAX_POR_DIA = 400      # limite somando todas as visitas do dia, para proteger os créditos
 MAX_PRINT_MB = 8       # tamanho máximo do print enviado
+MAX_PRINTS = 5         # prints por visita (ler imagem custa uns 10 vezes mais que ler texto)
+MAX_PRINTS_POR_DIA = 60  # prints somando todas as visitas do dia
 EXEMPLOS = {texto for _, texto in EXEMPLOS_PRONTOS}
 
 # ---------- Aparência ----------
@@ -135,15 +137,19 @@ def analisar_mensagem(texto):
 @st.cache_resource
 def contador_do_dia():
     """Contador único do app inteiro (vale para todas as visitas)."""
-    return {"dia": None, "total": 0}
+    return {"dia": None, "total": 0, "prints": 0}
 
 
-def pode_analisar_hoje():
+def contador_de_hoje():
     contador = contador_do_dia()
     hoje = date.today().isoformat()
     if contador["dia"] != hoje:
-        contador["dia"], contador["total"] = hoje, 0
-    return contador["total"] < MAX_POR_DIA
+        contador["dia"], contador["total"], contador["prints"] = hoje, 0, 0
+    return contador
+
+
+def pode_analisar_hoje():
+    return contador_de_hoje()["total"] < MAX_POR_DIA
 
 
 def data_br(iso):
@@ -354,11 +360,20 @@ def executar_analise(mensagem, veio_de_exemplo, chave_print):
     if gasta_credito and not pode_analisar_hoje():
         avisar("O Desconfia.AI atingiu o limite de análises de hoje. Volte amanhã ou use os exemplos.")
         return
+    if arquivo is not None and st.session_state.get("prints", 0) >= MAX_PRINTS:
+        avisar("Você chegou ao limite de prints desta visita. Copie o texto da mensagem e cole na caixa acima.")
+        return
+    if arquivo is not None and contador_de_hoje()["prints"] >= MAX_PRINTS_POR_DIA:
+        avisar("O limite de prints de hoje foi atingido. Copie o texto da mensagem e cole na caixa acima.")
+        return
 
     # Conta no limite já no começo: assim ninguém gasta créditos cancelando análises no meio
     st.session_state.usos = usos + 1
     if gasta_credito:
-        contador_do_dia()["total"] += 1
+        contador_de_hoje()["total"] += 1
+    if arquivo is not None:
+        st.session_state.prints = st.session_state.get("prints", 0) + 1
+        contador_de_hoje()["prints"] += 1
 
     lido = None
     if arquivo is not None:
