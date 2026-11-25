@@ -24,14 +24,16 @@ components.html(
     height=0,
 )
 
-# A chave vem do arquivo .env (no computador) ou dos Secrets (no Streamlit Cloud)
-if not os.getenv("OPENAI_API_KEY"):
-    try:
-        os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-    except Exception:
-        pass
+# As chaves vêm do arquivo .env (no computador) ou dos Secrets (no Streamlit Cloud)
+for _chave in ("OPENAI_API_KEY", "FIRECRAWL_API_KEY"):
+    if not os.getenv(_chave):
+        try:
+            os.environ[_chave] = st.secrets[_chave]
+        except Exception:
+            pass
 
-from analise import EXEMPLOS_PRONTOS, analisar, juntar_sinais, ler_imagem  # noqa: E402
+from analise import EXEMPLOS_PRONTOS, analisar, juntar_sinais, ler_imagem, sites_do_texto  # noqa: E402
+from pagina import escolher_link  # noqa: E402
 from verificacoes import texto_dos_dias  # noqa: E402
 from ja_paguei import (  # noqa: E402
     DEPOIS, FONTES, PASSOS, preencher_a_partir_da_analise, texto_para_o_banco, texto_para_o_bo,
@@ -43,6 +45,8 @@ MAX_POR_DIA = 400      # limite somando todas as visitas do dia, para proteger o
 MAX_PRINT_MB = 8       # tamanho máximo do print enviado
 MAX_PRINTS = 5         # prints por visita (ler imagem custa uns 10 vezes mais que ler texto)
 MAX_PRINTS_POR_DIA = 60  # prints somando todas as visitas do dia
+MAX_PAGINAS = 5        # páginas de link abertas pela Firecrawl por visita
+MAX_PAGINAS_POR_DIA = 200  # páginas somando todas as visitas do dia (protege os créditos)
 EXEMPLOS = {texto for _, texto in EXEMPLOS_PRONTOS}
 
 # ---------- Aparência ----------
@@ -125,9 +129,9 @@ def analisar_exemplo(texto, versao):
     return ficha
 
 
-def analisar_mensagem(texto):
+def analisar_mensagem(texto, abrir_pagina=False):
     if texto not in EXEMPLOS:
-        return analisar(texto)
+        return analisar(texto, abrir_pagina=abrir_pagina)
     try:
         return analisar_exemplo(texto, versao_do_codigo())
     except ResultadoSemIA as sem_ia:
@@ -137,14 +141,14 @@ def analisar_mensagem(texto):
 @st.cache_resource
 def contador_do_dia():
     """Contador único do app inteiro (vale para todas as visitas)."""
-    return {"dia": None, "total": 0, "prints": 0}
+    return {"dia": None, "total": 0, "prints": 0, "paginas": 0}
 
 
 def contador_de_hoje():
     contador = contador_do_dia()
     hoje = date.today().isoformat()
     if contador["dia"] != hoje:
-        contador["dia"], contador["total"], contador["prints"] = hoje, 0, 0
+        contador["dia"], contador["total"], contador["prints"], contador["paginas"] = hoje, 0, 0, 0
     return contador
 
 
@@ -327,6 +331,28 @@ def mostrar_laudo(ficha):
         st.markdown("".join(partes), unsafe_allow_html=True)
         st.caption("Um site antigo não quer dizer que seja confiável: golpistas também usam sites antigos que foram invadidos.")
 
+    dados_pagina = ficha.get("pagina")
+    if dados_pagina:
+        st.subheader("O que tem na página do link")
+        if dados_pagina.get("ok"):
+            partes = []
+            if dados_pagina.get("titulo"):
+                partes.append(f'<div class="sinal"><strong>Título da página:</strong> {e(dados_pagina["titulo"])}</div>')
+            destino = dados_pagina.get("destino") or dados_pagina.get("endereco")
+            partes.append(f'<div class="sinal"><strong>Endereço aberto:</strong> {e(destino)}</div>')
+            if dados_pagina.get("pede"):
+                partes.append('<div class="sinal"><strong>A página pede:</strong> ' + e(", ".join(dados_pagina["pede"])) + "</div>")
+            else:
+                partes.append('<div class="sinal">Não encontramos pedido de senha, cartão, código ou pagamento nesta página.</div>')
+            st.markdown("".join(partes), unsafe_allow_html=True)
+            if dados_pagina.get("captura"):
+                st.image(dados_pagina["captura"], width=520,
+                         caption="Captura da página, feita pela Firecrawl nos servidores dela. Você não precisa abrir o site.")
+        else:
+            st.markdown("Não conseguimos abrir a página. Ela pode estar fora do ar ou já ter sido derrubada.")
+        st.caption("Abrimos a página com a Firecrawl, sem acessar o site pelo seu celular. O texto da página é "
+                   "conferido por regras fixas e não vai para a IA.")
+
     if ficha["nivel_de_risco"] in ("alto", "medio"):
         st.button("Já fiz o pagamento. E agora?", on_click=ir_para_ja_paguei, width="stretch")
 
@@ -388,9 +414,21 @@ def executar_analise(mensagem, veio_de_exemplo, chave_print):
             return
         texto = f"{texto}\n{lido}".strip()
 
+    # Página do link: só fora dos exemplos (um site inventado pode existir e ser de outra pessoa),
+    # só com a chave da Firecrawl e dentro dos limites
+    abrir = (texto not in EXEMPLOS and bool(os.getenv("FIRECRAWL_API_KEY"))
+             and escolher_link(texto, sites_do_texto(texto)) is not None
+             and st.session_state.get("paginas", 0) < MAX_PAGINAS
+             and contador_de_hoje()["paginas"] < MAX_PAGINAS_POR_DIA)
+    if abrir:
+        st.session_state.paginas = st.session_state.get("paginas", 0) + 1
+        contador_de_hoje()["paginas"] += 1
+
     try:
-        with st.spinner("Analisando a mensagem..."):
-            ficha = analisar_mensagem(texto)
+        espera = ("Analisando a mensagem e abrindo a página do link com segurança..." if abrir
+                  else "Analisando a mensagem...")
+        with st.spinner(espera):
+            ficha = analisar_mensagem(texto, abrir)
     except Exception:
         avisar("Não conseguimos analisar agora. Tente de novo em alguns segundos.", "erro")
         return

@@ -30,6 +30,9 @@ import re
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from concurrent.futures import ThreadPoolExecutor
+
+import pagina
 from marcas import MARCAS, frase as frase_imitacao, imitacoes
 from verificacoes import consultar_sites, dominio_registravel, sinais_dos_sites
 
@@ -398,12 +401,23 @@ def trecho_existe(trecho, mensagem):
     return bool(limpo) and limpo in normalizar(mensagem)
 
 
-def analisar(mensagem):
+_fila_paginas = ThreadPoolExecutor(max_workers=4)  # abre a página do link enquanto a IA analisa
+
+
+def analisar(mensagem, abrir_pagina=False):
     """Analisa uma mensagem e devolve um dicionário com o resultado.
 
     Se a IA estiver indisponível, entra no modo de segurança: o resultado sai só com as
     regras fixas e as consultas oficiais, e ficha["modo"] fica "seguranca".
+    Com abrir_pagina=True, a página do primeiro link suspeito é aberta pela Firecrawl
+    (nos servidores dela), ao mesmo tempo que a IA analisa.
     """
+    tarefa_pagina = None
+    if abrir_pagina:
+        endereco = pagina.escolher_link(mensagem, sites_do_texto(mensagem))
+        if endereco:
+            tarefa_pagina = _fila_paginas.submit(pagina.abrir_pagina, endereco)
+
     ficha = ficha_pela_ia(mensagem)
     modo = "completo"
     if ficha is None:
@@ -435,6 +449,19 @@ def analisar(mensagem):
     # Consulta no registro oficial de domínios há quanto tempo cada site existe
     verificacoes = consultar_sites(sorted(sites), ignorar=ENCURTADORES)
     sinais_regras += sinais_dos_sites(verificacoes)
+
+    # Página do link, aberta pela Firecrawl enquanto a IA analisava (o texto dela não vai para a IA)
+    if tarefa_pagina is not None:
+        try:
+            resultado_pagina = tarefa_pagina.result(timeout=pagina.TEMPO_LIMITE + 5)
+        except Exception:
+            resultado_pagina = None
+        sinais_pagina = pagina.sinais_da_pagina(resultado_pagina)
+        if any(s["categoria"] in FAMILIA_SITE for s in sinais_regras):
+            # o endereço já denunciou a imitação: não repetir com o que a página diz ser
+            sinais_pagina = [s for s in sinais_pagina if s["categoria"] != "imitacao"]
+        sinais_regras += sinais_pagina
+        ficha["pagina"] = pagina.resumo_para_o_laudo(resultado_pagina)
 
     risco_final = risco_ia
     for regra in sinais_regras:

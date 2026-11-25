@@ -156,3 +156,42 @@ def test_sinal_de_site_do_governo_nao_repete():
                                 "sinal": "Usa o nome do governo, mas o site x.com não é um endereço oficial."}],
              "sinais": [{"sinal": "O site x.com não é oficial do governo.", "trecho": "x.com"}]}
     assert len(juntar_sinais(ficha)) == 1
+
+
+PAGINA_FALSA = {"ok": True, "titulo": "Nubank - Acesse sua conta", "destino": "https://nubanck-seguranca.com/login",
+                "endereco": "https://nubanck-seguranca.com/login", "captura": None,
+                "texto": "Digite seu CPF e sua senha. Informe o número do cartão e o CVV."}
+
+
+def test_pagina_do_link():
+    import pagina
+    msg = "Confirme seus dados em nubanck-seguranca.com/login agora."
+    assert pagina.escolher_link(msg, sites_do_texto(msg)) == "https://nubanck-seguranca.com/login"
+    assert pagina.escolher_link("Veja em https://www.nubank.com.br", {"nubank.com.br"}) is None
+    assert {s["categoria"] for s in pagina.sinais_da_pagina(PAGINA_FALSA)} == {"pagina", "imitacao"}
+    assert pagina.sinais_da_pagina({"ok": False}) == [] and pagina.sinais_da_pagina(None) == []
+    loja = {"ok": True, "titulo": "Bolos da Ana", "destino": "https://bolosdaana.com", "texto": "Encomende seu bolo."}
+    assert pagina.sinais_da_pagina(loja) == []
+    # página legítima que cita marcas no texto e tem "Esqueci minha senha": não pode dar alarme
+    reclamacoes = {"ok": True, "titulo": "Black Friday", "destino": "https://www.reclameaqui.com.br/",
+                   "texto": "Empresas mais reclamadas: Mercado Livre, Magazine Luiza. Entrar. Esqueci minha senha. "
+                            "Pesquise a empresa pelo CPF ou CNPJ."}
+    assert pagina.sinais_da_pagina(reclamacoes) == []
+
+
+def test_sem_chave_da_firecrawl_nao_abre(monkeypatch):
+    import pagina
+    monkeypatch.delenv("FIRECRAWL_API_KEY", raising=False)
+    assert pagina.abrir_pagina("https://exemplo.com") is None
+
+
+def test_analise_com_pagina_do_link(monkeypatch):
+    import analise
+    import pagina
+    monkeypatch.setenv("FORCAR_MODO_SEGURANCA", "1")
+    monkeypatch.setattr(analise, "consultar_sites", lambda sites, ignorar=(): [])
+    monkeypatch.setattr(pagina, "abrir_pagina", lambda endereco: PAGINA_FALSA)
+    ficha = analise.analisar("Oi, tudo bem? Veja isso: nubanck-seguranca.com/login", abrir_pagina=True)
+    assert ficha["nivel_de_risco"] == "alto"
+    assert ficha["pagina"]["pede"] and ficha["pagina"]["marca"] == "Nubank"
+    assert "pagina" not in analise.analisar("Oi, tudo bem? Veja isso: nubanck-seguranca.com/login")
