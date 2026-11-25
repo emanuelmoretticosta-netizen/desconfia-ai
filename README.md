@@ -1,3 +1,5 @@
+<img src="docs/logo.svg" alt="Logo do Desconfia.AI: um balão de mensagem com olhar desconfiado" width="72">
+
 # Desconfia.AI
 
 [![Testes](https://github.com/emanuelmoretticosta-netizen/desconfia-ai/actions/workflows/testes.yml/badge.svg)](https://github.com/emanuelmoretticosta-netizen/desconfia-ai/actions/workflows/testes.yml)
@@ -30,7 +32,7 @@ Em um levantamento com 16 mil anúncios que citavam "empréstimo" nas plataforma
 
 ## A solução
 
-A pessoa cola a mensagem suspeita no site, ou conta o que aconteceu (por exemplo, uma ligação), e em segundos recebe um **laudo em linguagem simples**: o nível de risco, cada sinal de golpe com o trecho da mensagem marcado, o que fazer agora e o que foi conferido em **fonte oficial**, e não só a opinião de uma IA.
+A pessoa cola a mensagem suspeita no site, envia um print da conversa ou conta o que aconteceu (por exemplo, uma ligação), e em segundos recebe um **laudo em linguagem simples**: o nível de risco, cada sinal de golpe com o trecho da mensagem marcado, o que fazer agora e o que foi conferido em **fonte oficial**, e não só a opinião de uma IA.
 
 O Desconfia.AI **nunca diz que uma mensagem é segura**: mostra sinais de risco e orienta a confirmar pelo canal oficial.
 
@@ -56,7 +58,7 @@ O Desconfia.AI **nunca diz que uma mensagem é segura**: mostra sinais de risco 
 
 1. **Entrada:** texto colado no site, um **print da conversa** (a IA transcreve o texto, que passa pela mesma análise) ou o relato do que aconteceu. Protótipo no WhatsApp: a pessoa encaminha a mensagem e recebe o laudo na conversa.
 2. **Extração com IA:** a IA identifica quem diz ser, quem recebe o dinheiro, chave Pix, telefone, site, programa citado e valor pedido.
-3. **Regras fixas, escritas por nós:** conferem sinais clássicos de golpe, incluindo regras dedicadas aos golpes mais relatados: falso parente ("troquei de número" e pedido de dinheiro), falsa central ("transfira para uma conta segura") e empréstimo com taxa antecipada. Também conferem taxa cobrada em nome de órgão oficial, pedido de senha, código ou nome da mãe, ganho garantido, link encurtado, site "oficial" que não termina em .gov.br e pressa. As regras **só aumentam o risco**, nunca diminuem.
+3. **Regras fixas, escritas por nós:** conferem sinais clássicos de golpe, incluindo regras dedicadas aos golpes mais relatados: falso parente ("troquei de número" e pedido de dinheiro), falsa central ("transfira para uma conta segura") e empréstimo com taxa antecipada. Também conferem taxa cobrada em nome de órgão oficial, pedido de senha, código ou nome da mãe, pedido de dados por link, ameaça de bloqueio, nome de marca com um site que não é o oficial, pedido de doação por site desconhecido, ganho garantido, link encurtado, site "oficial" que não termina em .gov.br e pressa. As regras **só aumentam o risco**, nunca diminuem.
 4. **Site que imita marca conhecida (typosquatting):** o app compara cada endereço da mensagem com os sites oficiais das marcas mais imitadas em golpes (bancos, lojas, Correios, Serasa). Se o endereço usa o nome da marca, ou uma versão com erro de digitação como "nubanck", e não é o site oficial, o laudo avisa e mostra o endereço verdadeiro. A lista está em `marcas.py`.
 5. **Consulta em fonte oficial:** a idade do site da mensagem, no registro oficial de domínios (protocolo RDAP; para sites .br, o Registro.br). Site criado há poucos dias, ou que nem está registrado, é sinal forte de golpe.
 6. **Página do link, sem abrir o site:** a página do primeiro link suspeito é aberta pela [Firecrawl](https://www.firecrawl.dev), nos servidores dela, ao mesmo tempo que a IA analisa. Regras fixas conferem se a página pede senha, dados do cartão, código, CPF, Pix ou para instalar um aplicativo, e se ela se apresenta como uma marca sem ser o site oficial. O laudo mostra o título, o endereço, o que a página pede e uma captura da tela.
@@ -141,7 +143,7 @@ Todas as mensagens de teste são fictícias.
 - **Base de testes da equipe** (`dados/testes_golpes.csv`): 40 mensagens, sendo 30 golpes de 10 tipos (falsa taxa, falsa venda, falsa caridade, falso investimento, falso programa de pontos, falso auxílio, falso site de vendas, falsa dívida, falsa central e falso parente) e 10 mensagens normais, incluindo avisos verdadeiros sobre golpes e um parente pedindo Pix **sem** trocar de número. Os 24 primeiros casos foram montados por Maria Clara de Andrade e Silva, e os demais têm como base alertas oficiais, com a fonte na própria planilha. Para rodar: `python avaliar_planilha.py`.
   **Resultado em 23/11/2026: 30 de 30 golpes com risco médio ou alto e 10 de 10 mensagens normais com risco baixo.** O detalhe de cada caso fica em `dados/resultados_testes.csv`.
   **No modo de segurança (sem a IA), as regras fixas sozinhas: 23 de 30 golpes e 10 de 10 mensagens normais**, ainda sem nenhum alarme falso. Ou seja: a IA faz diferença, e se ela cair o app continua útil. As regras cobrem padrões gerais de golpe (ameaça de bloqueio, pedido de dados por link, nome de marca com site que não é o oficial, prazo curto e pedido de doação por site desconhecido, este último tirado da biblioteca de golpes da equipe) e não foram escritas caso a caso para esta planilha.
-- **Testes automáticos** (`test_regras.py`): conferem as regras fixas, a detecção de sites que imitam marcas, a conferência dos trechos, o modo "já paguei", o modo de segurança e a assinatura dos avisos do WhatsApp. Não usam a IA nem a internet e rodam sozinhos no GitHub a cada envio: o selo no topo desta página mostra o resultado.
+- **Testes automáticos** (`test_regras.py`): conferem as regras fixas, a detecção de sites que imitam marcas, a conferência dos trechos, o modo "já paguei", o modo de segurança, a leitura da página do link, o envio de print sem a IA e a assinatura dos avisos do WhatsApp. Não usam a IA nem a internet e rodam sozinhos no GitHub a cada envio: o selo no topo desta página mostra o resultado.
 - **Teste rápido** (`testes_golpes.py`): um golpe de cada um dos 8 tipos mais relatados e 4 mensagens normais. Resultado: 12 de 12.
 
 Transparência: as regras foram ajustadas durante o desenvolvimento usando essa base, então ela ainda não é um teste independente. Os links da planilha usam terminações reservadas (.invalid, .test, .example), que não existem na internet, e são trocados por .com só na hora da análise, para que a IA não perceba que é um teste.
@@ -227,5 +229,5 @@ Todos os exemplos de golpe usados neste repositório são fictícios ou baseados
 
 ## Time
 
-- Emanuel Moretti Costa
-- Maria Clara de Andrade e Silva
+- **Emanuel Moretti Costa:** desenvolvimento do app, das regras e do bot, integrações e testes automáticos
+- **Maria Clara de Andrade e Silva:** pesquisa dos tipos de golpe e das fontes oficiais (biblioteca de golpes), base de testes da equipe e testes com pessoas reais

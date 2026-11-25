@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Desconfia.AI | A IA que desconfia por você</title>
+<link rel="icon" type="image/png" href="docs/icone.png">
 <meta name="description" content="Desconfia.AI lê mensagens com ofertas financeiras suspeitas, confere em fontes oficiais e explica, em linguagem simples, se há sinais de golpe e o que fazer. Feito para quem recebe ofertas pelo celular, principalmente pessoas idosas, e para as famílias que cuidam delas.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -149,7 +150,7 @@
 <body>
 
 <header class="shell top">
-  <span class="brand">Desconfia.AI</span>
+  <span class="brand"><svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true" style="vertical-align:middle;margin-right:8px"><path d="M9 5h30a6 6 0 0 1 6 6v19a6 6 0 0 1-6 6H23l-10 8v-8H9a6 6 0 0 1-6-6V11a6 6 0 0 1 6-6Z" fill="#13233a"/><path d="M8 23C11.5 16.5 18.5 16.5 22 23C18.5 29.5 11.5 29.5 8 23Z" fill="#fff"/><circle cx="19.2" cy="24.6" r="3.1" fill="#13233a"/><path d="M7 15.5H23V21.8L7 21.4Z" fill="#13233a"/><path d="M26 23C29.5 16.5 36.5 16.5 40 23C36.5 29.5 29.5 29.5 26 23Z" fill="#fff"/><circle cx="37.2" cy="24.6" r="3.1" fill="#13233a"/><path d="M25 15.5H41V21.4L25 21.8Z" fill="#13233a"/><path d="M8.5 14.5Q14.5 8.5 22 12.5" stroke="#ffe15a" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M26.5 16.2L39.5 14.2" stroke="#ffe15a" stroke-width="3.2" fill="none" stroke-linecap="round"/></svg>Desconfia.AI</span>
   <span class="event">Projeto para o Hack Brasil 2026, trilha de Cibersegurança</span>
 </header>
 
@@ -157,7 +158,7 @@
   <section class="shell intro">
     <div>
       <h1>A IA que desconfia por você.</h1>
-      <p class="lede">Recebeu uma oferta boa demais para ser verdade? O Desconfia.AI lê a mensagem, confere em fontes oficiais e explica, em palavras simples, se há sinais de golpe e o que fazer agora.</p>
+      <p class="lede">Recebeu uma oferta boa demais para ser verdade? O Desconfia.AI lê a mensagem ou o print, confere em fontes oficiais e explica, em palavras simples, se há sinais de golpe e o que fazer agora.</p>
       <p class="who">Feito para quem recebe ofertas de dinheiro pelo celular, principalmente pessoas idosas, e para as famílias que cuidam delas.</p>
       <div class="actions">
         <a class="button primary" href="https://desconfia-ai.streamlit.app">Testar agora</a>
@@ -214,7 +215,10 @@
     <ul class="checks">
       <li><h3>Registro oficial de domínios</h3><p>Há quanto tempo o site da mensagem existe? Site criado há poucos dias, ou que nem está registrado, é sinal forte de golpe.</p></li>
       <li><h3>Regras dos programas oficiais</h3><p>A oferta contradiz o programa verdadeiro, como cobrar taxa onde não existe taxa ou usar um site que não termina em .gov.br?</p></li>
-      <li><h3>Os golpes mais relatados</h3><p>Regras dedicadas ao falso parente, à falsa central e ao empréstimo com taxa antecipada. Testado com 30 golpes de 10 tipos.</p></li>
+      <li><h3>Site que imita marca</h3><p>Endereços como "nubanck" no lugar de "nubank" são comparados com os sites oficiais das marcas mais imitadas em golpes.</p></li>
+      <li><h3>A página do link, sem abrir o site</h3><p>A página é aberta pela Firecrawl, nos servidores dela. Se ela pede senha, cartão ou código, o laudo avisa e mostra a captura da tela.</p></li>
+      <li><h3>Os golpes mais relatados</h3><p>Regras dedicadas ao falso parente, à falsa central, ao empréstimo com taxa antecipada e à doação por site desconhecido. Testado com 30 golpes de 10 tipos.</p></li>
+      <li><h3>Funciona mesmo se a IA cair</h3><p>Se a IA ficar fora do ar, o laudo sai com as regras fixas e as consultas oficiais, e avisa que a análise está reduzida.</p></li>
       <li><h3>Orientação oficial (em breve)</h3><p>Cada tipo de golpe com a orientação da Febraban, do Banco Central ou do gov.br no laudo.</p></li>
     </ul>
   </section>

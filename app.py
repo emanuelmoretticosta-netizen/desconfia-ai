@@ -12,7 +12,8 @@ from datetime import date
 
 import streamlit as st
 
-st.set_page_config(page_title="Desconfia.AI", page_icon="🛡️", layout="centered")
+st.set_page_config(page_title="Desconfia.AI", page_icon=str(Path(__file__).with_name("docs") / "icone.png"),
+                   layout="centered")
 
 # Avisa o navegador que a página é em português, para o tradutor automático do Chrome não
 # "traduzir" o texto e estragar as palavras (o Streamlit marca a página como inglês).
@@ -53,7 +54,23 @@ EXEMPLOS = {texto for _, texto in EXEMPLOS_PRONTOS}
 st.markdown(
     """
     <style>
+      @import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap");
       html, body, [class*="css"] { font-size: 18px; }
+      /* Atkinson Hyperlegible: fonte criada para pessoas com baixa visão (a mesma da página pública) */
+      html, body, .stApp, p, li, label, textarea, input, button, h1, h2, h3, h4, td, th, mark {
+        font-family: "Atkinson Hyperlegible", system-ui, sans-serif !important; }
+      .stApp { background: #eaf0f6; }
+      .topo { display: flex; align-items: center; gap: 14px; margin: 0 0 4px; }
+      .topo svg { flex: none; }
+      .marca { font-size: 2.15rem; font-weight: 700; color: #13233a; line-height: 1.05; letter-spacing: -0.01em; }
+      .marca span { color: #1f4fa8; }
+      .lema { color: #4d5b6e; font-size: 1.02rem; margin-top: 2px; }
+      .st-key-painel_entrada, .st-key-painel_laudo {
+        background: #ffffff; border-color: #c9d3de !important; border-radius: 16px; padding: 18px 20px 20px; }
+      .st-key-painel_entrada textarea { background: #f6f8fb; }
+      .sub { margin-top: 0.7rem; }
+      .stButton button[kind="secondary"] { background: #ffffff; border-color: #c9d3de; }
+      .stButton button[kind="secondary"]:hover { border-color: #1f4fa8; color: #1f4fa8; }
       .block-container { padding-top: 2rem; max-width: 760px; }
       h1 { letter-spacing: -0.02em; }
       .sub { color: #4d5b6e; font-size: 1.1rem; margin: -0.4rem 0 1.2rem; }
@@ -440,10 +457,18 @@ def executar_analise(mensagem, veio_de_exemplo, chave_print):
 
 
 # ---------- Topo ----------
-st.title("Desconfia.AI")
+# A logo é um balão de mensagem com um olhar desconfiado (olhos semicerrados, olhando de canto,
+# uma sobrancelha levantada): o balão desconfia da mensagem. O arquivo fica em docs/logo.svg.
+LOGO = (
+    '<svg width="54" height="54" viewBox="0 0 48 48" aria-hidden="true">'
+    '<path d="M9 5h30a6 6 0 0 1 6 6v19a6 6 0 0 1-6 6H23l-10 8v-8H9a6 6 0 0 1-6-6V11a6 6 0 0 1 6-6Z" fill="#13233a"/><path d="M8 23C11.5 16.5 18.5 16.5 22 23C18.5 29.5 11.5 29.5 8 23Z" fill="#fff"/><circle cx="19.2" cy="24.6" r="3.1" fill="#13233a"/><path d="M7 15.5H23V21.8L7 21.4Z" fill="#13233a"/><path d="M26 23C29.5 16.5 36.5 16.5 40 23C36.5 29.5 29.5 29.5 26 23Z" fill="#fff"/><circle cx="37.2" cy="24.6" r="3.1" fill="#13233a"/><path d="M25 15.5H41V21.4L25 21.8Z" fill="#13233a"/><path d="M8.5 14.5Q14.5 8.5 22 12.5" stroke="#ffe15a" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M26.5 16.2L39.5 14.2" stroke="#ffe15a" stroke-width="3.2" fill="none" stroke-linecap="round"/>'
+    "</svg>"
+)
 st.markdown(
-    '<p class="sub">Recebeu uma oferta de dinheiro estranha? Cole a mensagem aqui ou conte o que aconteceu. '
-    "A gente aponta os sinais de golpe e diz o que fazer.</p>",
+    f'<div class="topo">{LOGO}<div><div class="marca" role="heading" aria-level="1">Desconfia<span>.AI</span></div>'
+    '<div class="lema">A IA que desconfia por você</div></div></div>'
+    '<p class="sub">Recebeu uma oferta de dinheiro estranha? Cole a mensagem, envie um print ou conte o que '
+    "aconteceu. A gente aponta os sinais de golpe e diz o que fazer.</p>",
     unsafe_allow_html=True,
 )
 
@@ -456,28 +481,30 @@ if modo == MODO_PAGUEI:
     rodape()
     st.stop()
 
-mensagem = st.text_area(
-    "Mensagem recebida",
-    key="mensagem",
-    height=180,
-    max_chars=MAX_CARACTERES,
-    disabled=ocupado,
-    placeholder="Cole aqui a mensagem do WhatsApp, SMS ou e-mail que você recebeu. Também pode contar o que aconteceu, por exemplo uma ligação.",
-)
+painel_entrada = st.container(border=True, key="painel_entrada")
+with painel_entrada:
+    mensagem = st.text_area(
+        "Mensagem recebida",
+        key="mensagem",
+        height=180,
+        max_chars=MAX_CARACTERES,
+        disabled=ocupado,
+        placeholder="Cole aqui a mensagem do WhatsApp, SMS ou e-mail que você recebeu. Também pode contar o que aconteceu, por exemplo uma ligação.",
+    )
 
-CHAVE_PRINT = f"print_{st.session_state.get('versao_print', 0)}"
-st.file_uploader(
-    "Ou envie um print da mensagem",
-    type=["png", "jpg", "jpeg", "webp"],
-    key=CHAVE_PRINT,
-    disabled=ocupado,
-    help="A IA lê o texto do print e analisa. O print não fica guardado. Evite prints com senhas ou documentos.",
-)
+    CHAVE_PRINT = f"print_{st.session_state.get('versao_print', 0)}"
+    st.file_uploader(
+        "Ou envie um print da mensagem",
+        type=["png", "jpg", "jpeg", "webp"],
+        key=CHAVE_PRINT,
+        disabled=ocupado,
+        help="A IA lê o texto do print e analisa. O print não fica guardado. Evite prints com senhas ou documentos.",
+    )
 
-coluna_analisar, coluna_limpar = st.columns([3, 1])
-coluna_analisar.button("Analisar mensagem", type="primary", width="stretch", on_click=iniciar_analise,
-                       disabled=ocupado)
-coluna_limpar.button("Limpar", on_click=limpar_tudo, width="stretch", disabled=ocupado)
+    coluna_analisar, coluna_limpar = st.columns([3, 1])
+    coluna_analisar.button("Analisar mensagem", type="primary", width="stretch", on_click=iniciar_analise,
+                           disabled=ocupado)
+    coluna_limpar.button("Limpar", on_click=limpar_tudo, width="stretch", disabled=ocupado)
 
 area_laudo = st.container()  # o laudo aparece aqui, logo abaixo dos botões
 
@@ -505,4 +532,5 @@ with area_laudo:
     if aviso:
         (st.error if aviso[0] == "erro" else st.warning)(aviso[1])
     if st.session_state.get("resultado"):
-        mostrar_laudo(st.session_state.resultado)
+        with st.container(border=True, key="painel_laudo"):
+            mostrar_laudo(st.session_state.resultado)
