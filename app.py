@@ -57,7 +57,7 @@ st.markdown(
       @import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap");
       html, body, [class*="css"] { font-size: 18px; }
       /* Atkinson Hyperlegible: fonte criada para pessoas com baixa visão (a mesma da página pública) */
-      html, body, .stApp, p, li, label, textarea, input, button, h1, h2, h3, h4, td, th, mark {
+      html, body, .stApp, .stApp *:not([data-testid="stIconMaterial"]) {
         font-family: "Atkinson Hyperlegible", system-ui, sans-serif !important; }
       .stApp { background: #eaf0f6; }
       .topo { display: flex; align-items: center; gap: 14px; margin: 0 0 4px; }
@@ -375,7 +375,7 @@ def mostrar_laudo(ficha):
 
     encontrados = [
         ("Diz ser", ficha.get("quem_diz_ser")),
-        ("Quem recebe", ficha.get("quem_recebe")),
+        ("Quem recebe", ficha.get("quem_recebe") if ficha.get("quem_recebe") not in (ficha.get("chaves_pix") or []) else None),
         ("Chave Pix", ", ".join(ficha.get("chaves_pix") or [])),
         ("Telefone", ", ".join(ficha.get("telefones") or [])),
         ("Site", ", ".join(ficha.get("sites") or [])),
