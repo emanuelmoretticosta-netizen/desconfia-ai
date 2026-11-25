@@ -10,6 +10,8 @@ Projeto para o Hack Brasil 2026, trilha de **Cibersegurança**.
 
 > Status: em desenvolvimento durante o hackathon (04/11 a 30/11/2026).
 
+![O Desconfia.AI analisando uma mensagem de golpe: risco alto, sinais com o trecho da mensagem marcado e consulta oficial](docs/demo.gif)
+
 ## O problema
 
 Golpes financeiros digitais estão em alta no Brasil e chegam principalmente pelo WhatsApp, Instagram e Facebook:
