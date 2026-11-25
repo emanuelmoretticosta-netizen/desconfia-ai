@@ -19,7 +19,7 @@ from marcas import MARCAS
 from verificacoes import dominio_registravel
 
 ENDERECO_FIRECRAWL = "https://api.firecrawl.dev/v2/scrape"
-TEMPO_LIMITE = 20            # segundos de espera pela Firecrawl
+TEMPO_LIMITE = 12            # segundos de espera pela Firecrawl (o laudo não fica preso)
 GUARDAR_POR = 6 * 3600       # a mesma página não é aberta de novo por 6 horas (economiza créditos)
 MAX_TEXTO = 30000            # quantos caracteres da página são conferidos pelas regras
 

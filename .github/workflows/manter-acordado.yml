@@ -2,7 +2,7 @@ name: Manter o app acordado
 
 on:
   schedule:
-    - cron: "17 */4 * * *"   # a cada 4 horas
+    - cron: "23 * * * *"     # a cada hora: o GitHub pula execuções e o app dorme com 12 h sem visita
   workflow_dispatch:          # permite rodar na mão pela aba Actions
 
 jobs:

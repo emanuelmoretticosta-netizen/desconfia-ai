@@ -371,7 +371,7 @@ def checar_regras(texto, sites):
     if re.search(r"bloquei|bloquead|suspens|suspend|cancelad|cancelament|desativad|encerrad|\bmulta\b", t) \
             and (suspeitos or re.search(r"\bligue|\bligar|0800", t) or pede_pagamento) \
             and not re.search(r"(nunca|n[aã]o)[^.!?]{0,60}(bloque|suspend|cancel|desativ|multa)", t):
-        achou("ameaca", "Ameaça bloquear, cancelar ou multar algo seu para você agir com pressa, sem pensar.", "medio")
+        achou("ameaca", "Ameaça bloquear, cancelar ou multar algo seu para assustar você.", "medio")
 
     if re.search(r"s[oó] hoje|somente hoje|[uú]ltimas horas|expira|urgente|imediatamente|"
                  r"em at[eé] \d+ ?(h\b|hora|minuto)|pr[oó]xim[ao]s \d+ ?(hora|minuto)", t):
@@ -594,3 +594,51 @@ if __name__ == "__main__":
     }
     for titulo, mensagem in testes.items():
         mostrar(titulo, analisar(mensagem))
+
+
+# ---------- Mandar o resultado para alguém de confiança ----------
+# O golpe depende de pressa e de segredo ("troquei de número, não conta para ninguém").
+# Mostrar o resultado para um filho, neto ou amigo antes de pagar quebra as duas coisas.
+
+ENDERECO_APP = "https://desconfia-ai.streamlit.app"
+# E-mails (como chaves Pix) ficam como estão; só os sites são desarmados
+_SITE_OU_EMAIL = re.compile(r"(\S+@\S+)|" + PADRAO_SITE.pattern, re.IGNORECASE)
+
+RESULTADO_PARA_COMPARTILHAR = {
+    "alto": "RISCO ALTO de golpe",
+    "medio": "RISCO MÉDIO, pede cuidado",
+    "baixo": "RISCO BAIXO, sem sinais de golpe (isso não garante que a mensagem seja verdadeira)",
+}
+
+
+def desarmar_links(texto):
+    """Troca "site.com" por "site[.]com": o WhatsApp não transforma em link e ninguém clica sem querer."""
+    return _SITE_OU_EMAIL.sub(lambda m: m.group(1) or m.group(2).replace(".", "[.]"), str(texto))
+
+
+def texto_para_compartilhar(ficha, mensagem="", limite_trecho=280):
+    """Monta o texto que a pessoa manda pelo WhatsApp para alguém de confiança.
+
+    Leva o resultado, até 3 sinais, o que fazer e um trecho da mensagem, sempre com os links
+    do golpe desarmados. Só o endereço do app continua clicável. O nome "Desconfia.AI" não entra
+    no texto porque o WhatsApp o transformaria em link para desconfia.ai, que não é nosso.
+    """
+    nivel = ficha.get("nivel_de_risco") or "baixo"
+    partes = [
+        "Recebi esta mensagem e conferi se era golpe.",
+        "Resultado: " + RESULTADO_PARA_COMPARTILHAR.get(nivel, RESULTADO_PARA_COMPARTILHAR["baixo"]),
+    ]
+    sinais = juntar_sinais(ficha)[:3]
+    if sinais:
+        partes.append("Por quê:\n" + "\n".join(f"• {desarmar_links(s['sinal'])}" for s in sinais))
+    if ficha.get("o_que_fazer"):
+        partes.append("O que fazer: " + desarmar_links(ficha["o_que_fazer"]))
+    partes.append("Pode me ajudar a conferir antes de eu fazer qualquer coisa?")
+    trecho = desarmar_links(" ".join(str(mensagem or "").split()))
+    if trecho:
+        if len(trecho) > limite_trecho:
+            trecho = trecho[:limite_trecho].rsplit(" ", 1)[0] + "..."
+        partes.append(f'Mensagem que recebi:\n"{trecho}"')
+    partes.append(f"Confira você também: {ENDERECO_APP}")
+    return "\n\n".join(partes)
+

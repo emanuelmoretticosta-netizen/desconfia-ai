@@ -207,3 +207,22 @@ def test_pagina_com_titulo_em_lista_nao_quebra(monkeypatch):
     monkeypatch.setattr(pagina, "abrir_pagina", lambda endereco: estranha)  # formato inesperado
     ficha = analise.analisar("Veja: algum-site-qualquer.com/x", abrir_pagina=True)
     assert ficha["nivel_de_risco"] in ("baixo", "medio", "alto")  # o laudo sai mesmo assim
+
+
+def test_texto_para_mandar_a_alguem_de_confianca(monkeypatch):
+    """O texto leva o resultado e os links do golpe desarmados, para ninguém clicar sem querer."""
+    import analise
+    monkeypatch.setenv("FORCAR_MODO_SEGURANCA", "1")
+    monkeypatch.setattr(analise, "consultar_sites", lambda sites, ignorar=(): [])
+    for mensagem in (analise.EXEMPLO_MARCA, EXEMPLO_GOLPE):
+        texto = analise.texto_para_compartilhar(analise.analisar(mensagem), mensagem)
+        assert "RISCO ALTO" in texto and len(texto) < 1600
+        assert texto.endswith("Confira você também: https://desconfia-ai.streamlit.app")
+        sem_o_nosso = texto.replace("https://desconfia-ai.streamlit.app", "")
+        assert not analise.sites_do_texto(sem_o_nosso)  # nenhum site do golpe fica clicável
+    assert "nubanck-seguranca[.]com" in analise.texto_para_compartilhar(
+        analise.analisar(analise.EXEMPLO_MARCA), analise.EXEMPLO_MARCA)
+    assert analise.desarmar_links("Pix: liberacao.valores@gmail.com") == "Pix: liberacao.valores@gmail.com"
+    normal = analise.texto_para_compartilhar(analise.analisar(EXEMPLO_LEGITIMO), EXEMPLO_LEGITIMO)
+    assert "RISCO BAIXO" in normal
+

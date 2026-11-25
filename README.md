@@ -10,6 +10,15 @@ Projeto para o Hack Brasil 2026, trilha de **Cibersegurança**.
 
 **Teste agora:** [desconfia-ai.streamlit.app](https://desconfia-ai.streamlit.app) · **Página do projeto:** [emanuelmoretticosta-netizen.github.io/desconfia-ai](https://emanuelmoretticosta-netizen.github.io/desconfia-ai/)
 
+## Em 30 segundos
+
+- **O problema:** a cada R$ 100 perdidos em golpes no Pix, só R$ 8,90 voltam para a vítima. Quem mais cai não sabe diferenciar uma oferta oficial de uma falsa.
+- **O que o Desconfia.AI faz:** a pessoa cola a mensagem, envia um print ou encaminha no WhatsApp, e em segundos vê o risco, cada sinal de golpe com o trecho marcado e o que fazer.
+- **Com provas, não só a opinião de uma IA:** a idade do site no registro oficial, o alerta de site que imita marca e a página do link aberta com segurança pela Firecrawl, com a captura da tela.
+- **Antes de pagar,** um botão manda o resultado para alguém de confiança. **Depois de pagar,** o passo a passo do MED, com textos prontos para o banco e o boletim.
+- **Resultados:** nos nossos testes, acertou os 30 golpes e não deu alarme falso nas 10 mensagens normais. Sem a IA, o modo de segurança ainda pega 23 dos 30.
+- **Feito para quem tem dificuldade de leitura:** linguagem simples e a fonte Atkinson Hyperlegible, criada pelo Braille Institute para pessoas com baixa visão.
+
 > Status: em desenvolvimento durante o hackathon (04/11 a 30/11/2026).
 
 ![O Desconfia.AI analisando uma mensagem de golpe: risco alto, sinais com o trecho da mensagem marcado e consulta oficial](docs/demo.gif)
@@ -62,7 +71,7 @@ O Desconfia.AI **nunca diz que uma mensagem é segura**: mostra sinais de risco 
 4. **Site que imita marca conhecida (typosquatting):** o app compara cada endereço da mensagem com os sites oficiais das marcas mais imitadas em golpes (bancos, lojas, Correios, Serasa). Se o endereço usa o nome da marca, ou uma versão com erro de digitação como "nubanck", e não é o site oficial, o laudo avisa e mostra o endereço verdadeiro. A lista está em `marcas.py`.
 5. **Consulta em fonte oficial:** a idade do site da mensagem, no registro oficial de domínios (protocolo RDAP; para sites .br, o Registro.br). Site criado há poucos dias, ou que nem está registrado, é sinal forte de golpe.
 6. **Página do link, sem abrir o site:** a página do primeiro link suspeito é aberta pela [Firecrawl](https://www.firecrawl.dev), nos servidores dela, ao mesmo tempo que a IA analisa. Regras fixas conferem se a página pede senha, dados do cartão, código, CPF, Pix ou para instalar um aplicativo, e se ela se apresenta como uma marca sem ser o site oficial. O laudo mostra o título, o endereço, o que a página pede e uma captura da tela.
-7. **Laudo:** nível de risco, sinais com o trecho da mensagem, o que fazer e as fontes consultadas.
+7. **Laudo:** nível de risco, sinais com o trecho da mensagem, o que fazer e as fontes consultadas. Um botão manda o resultado para alguém de confiança pelo WhatsApp, com os links do golpe desarmados.
 8. **Modo "já paguei":** passo a passo para pedir o dinheiro de volta pelo **MED** (Mecanismo Especial de Devolução do Pix), na ordem certa, e textos prontos para o banco e para o boletim de ocorrência, já preenchidos com os dados da mensagem analisada. No WhatsApp, basta mandar "já paguei".
 
 ## Arquitetura
@@ -116,6 +125,7 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 - **Avisos autenticados:** o servidor do WhatsApp só aceita mensagens com assinatura válida (HMAC-SHA256 da Meta) ou com o segredo combinado com cada serviço.
 - **Proteção contra abuso:** limite de análises por pessoa e por dia, limite próprio para prints (ler imagem custa mais), tamanho máximo da mensagem e do print. A análise conta no limite assim que começa, e a tela fica travada até ela terminar, para ninguém gastar créditos clicando sem parar.
 - **Proteção da página:** todo texto vindo de fora é escapado antes de aparecer na tela, contra injeção de HTML.
+- **Links do golpe desarmados ao compartilhar:** no texto que a pessoa manda para alguém de confiança, os sites aparecem como `site[.]com`, para o WhatsApp não transformá-los em link e ninguém abrir o golpe sem querer. O texto vai do celular da pessoa direto para o WhatsApp, sem passar pelo nosso servidor.
 - **Segredos fora do código:** chaves só em variáveis de ambiente, nunca no repositório.
 - **Privacidade:** não guardamos as mensagens. Os registros do servidor mostram só os 4 últimos dígitos do telefone.
 
@@ -135,6 +145,7 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 | Modo de segurança: o laudo sai mesmo se a IA cair | |
 | Página do link aberta pela Firecrawl: o laudo mostra o que ela pede, sem ninguém abrir o site | |
 | 8 exemplos prontos no app: um clique e o laudo aparece | |
+| Botão para mandar o resultado a alguém de confiança pelo WhatsApp | |
 
 ### Testes
 
@@ -143,7 +154,7 @@ Todas as mensagens de teste são fictícias.
 - **Base de testes da equipe** (`dados/testes_golpes.csv`): 40 mensagens, sendo 30 golpes de 10 tipos (falsa taxa, falsa venda, falsa caridade, falso investimento, falso programa de pontos, falso auxílio, falso site de vendas, falsa dívida, falsa central e falso parente) e 10 mensagens normais, incluindo avisos verdadeiros sobre golpes e um parente pedindo Pix **sem** trocar de número. Os 24 primeiros casos foram montados por Maria Clara de Andrade e Silva, e os demais têm como base alertas oficiais, com a fonte na própria planilha. Para rodar: `python avaliar_planilha.py`.
   **Resultado em 23/11/2026: 30 de 30 golpes com risco médio ou alto e 10 de 10 mensagens normais com risco baixo.** O detalhe de cada caso fica em `dados/resultados_testes.csv`.
   **No modo de segurança (sem a IA), as regras fixas sozinhas: 23 de 30 golpes e 10 de 10 mensagens normais**, ainda sem nenhum alarme falso. Ou seja: a IA faz diferença, e se ela cair o app continua útil. As regras cobrem padrões gerais de golpe (ameaça de bloqueio, pedido de dados por link, nome de marca com site que não é o oficial, prazo curto e pedido de doação por site desconhecido, este último tirado da biblioteca de golpes da equipe) e não foram escritas caso a caso para esta planilha.
-- **Testes automáticos** (`test_regras.py`): conferem as regras fixas, a detecção de sites que imitam marcas, a conferência dos trechos, o modo "já paguei", o modo de segurança, a leitura da página do link, o envio de print sem a IA e a assinatura dos avisos do WhatsApp. Não usam a IA nem a internet e rodam sozinhos no GitHub a cada envio: o selo no topo desta página mostra o resultado.
+- **Testes automáticos** (`test_regras.py`): conferem as regras fixas, a detecção de sites que imitam marcas, a conferência dos trechos, o modo "já paguei", o modo de segurança, a leitura da página do link, o envio de print sem a IA, os links desarmados no texto para alguém de confiança e a assinatura dos avisos do WhatsApp. Não usam a IA nem a internet e rodam sozinhos no GitHub a cada envio: o selo no topo desta página mostra o resultado.
 - **Teste rápido** (`testes_golpes.py`): um golpe de cada um dos 8 tipos mais relatados e 4 mensagens normais. Resultado: 12 de 12.
 
 Transparência: as regras foram ajustadas durante o desenvolvimento usando essa base, então ela ainda não é um teste independente. Os links da planilha usam terminações reservadas (.invalid, .test, .example), que não existem na internet, e são trocados por .com só na hora da análise, para que a IA não perceba que é um teste.
@@ -160,6 +171,13 @@ O bot responde no WhatsApp de verdade, pelo sandbox oficial da 360dialog, parcei
 | Questionários de risco | A pessoa precisa responder tudo sozinha | Lê a mensagem automaticamente |
 | Bloqueio de chaves Pix pelos bancos | Só age na hora do pagamento e depois de denúncias | Age antes, no momento em que a oferta chega |
 | Nenhuma | Quem já caiu fica sem orientação | Guia a recuperação pelo MED, com textos prontos para o banco e o boletim |
+
+## Como chega a quem precisa e quanto custa
+
+- **Onde o golpe chega:** no WhatsApp, basta encaminhar a mensagem, sem baixar nada nem criar conta. O site abre em qualquer celular, sem cadastro.
+- **Pela família:** o golpe depende de pressa e de segredo. O botão "Mandar pelo WhatsApp" leva o resultado para um filho, neto ou amigo antes do pagamento, junto com o link do Desconfia.AI. Cada resultado enviado apresenta a ferramenta a mais uma família.
+- **Por quem já fala com esse público:** bancos, INSS, Procons, prefeituras, centros de convivência de idosos e ONGs podem divulgar o número e o link, sem nenhuma integração.
+- **Custo:** a hospedagem atual é gratuita (Streamlit Community Cloud e Render). Uma análise de texto custa menos de 1 centavo; no caso mais caro, com print e página do link, cerca de 5 centavos (preços da OpenAI e da Firecrawl, dólar a R$ 5,87 em 18/11/2026). Mil análises de texto por dia custam menos de R$ 5.
 
 ## Tecnologias
 
@@ -222,6 +240,7 @@ Para rodar o servidor do bot: `pip install -r requirements-bot.txt` e `gunicorn 
 - Número oficial no WhatsApp, depois da verificação da empresa na Meta
 - Detecção de campanhas: a mesma chave Pix ou telefone em várias mensagens diferentes
 - Classificador próprio em português (BERTimbau) com taxa de acerto medida
+- Leitura de print também no WhatsApp
 
 ## Aviso
 

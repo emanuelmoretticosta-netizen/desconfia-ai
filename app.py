@@ -9,6 +9,7 @@ import html
 import os
 from pathlib import Path
 from datetime import date
+from urllib.parse import quote
 
 import streamlit as st
 
@@ -33,7 +34,9 @@ for _chave in ("OPENAI_API_KEY", "FIRECRAWL_API_KEY"):
         except Exception:
             pass
 
-from analise import EXEMPLOS_PRONTOS, analisar, juntar_sinais, ler_imagem, sites_do_texto  # noqa: E402
+from analise import (  # noqa: E402
+    EXEMPLOS_PRONTOS, analisar, juntar_sinais, ler_imagem, sites_do_texto, texto_para_compartilhar,
+)
 from pagina import escolher_link  # noqa: E402
 from verificacoes import texto_dos_dias  # noqa: E402
 from ja_paguei import (  # noqa: E402
@@ -71,6 +74,8 @@ st.markdown(
       .sub { margin-top: 0.7rem; }
       .stButton button[kind="secondary"] { background: #ffffff; border-color: #c9d3de; }
       .stButton button[kind="secondary"]:hover { border-color: #1f4fa8; color: #1f4fa8; }
+      [data-testid="stBaseLinkButton-secondary"] { background: #ffffff; border-color: #c9d3de; }
+      [data-testid="stBaseLinkButton-secondary"]:hover { border-color: #1f4fa8; color: #1f4fa8; }
       .block-container { padding-top: 2rem; max-width: 760px; }
       h1 { letter-spacing: -0.02em; }
       .sub { color: #4d5b6e; font-size: 1.1rem; margin: -0.4rem 0 1.2rem; }
@@ -204,7 +209,9 @@ def rodape():
     st.divider()
     st.caption(
         "O Desconfia.AI não dá veredito: mostra sinais de risco e o que fazer. "
-        "Na dúvida, confirme sempre pelo canal oficial. A mensagem é enviada à IA da OpenAI para análise e nós não a guardamos. Evite colar senhas ou documentos. "
+        "Na dúvida, confirme sempre pelo canal oficial. A mensagem, e o print se você enviar um, vai para a IA "
+        "da OpenAI só para a análise, e nós não guardamos as mensagens. Se houver um link suspeito, a página é "
+        "aberta pela Firecrawl, nos servidores dela. Evite colar senhas ou documentos. "
         "Projeto para o Hack Brasil 2026."
     )
 
@@ -264,6 +271,7 @@ def limpar_tudo():
     st.session_state.versao_print = st.session_state.get("versao_print", 0) + 1
     st.session_state.resultado = None
     st.session_state.texto_do_print = None
+    st.session_state.texto_analisado = ""
 
 
 def iniciar_analise():
@@ -334,6 +342,22 @@ def mostrar_laudo(ficha):
             f'<div class="fazer"><strong>O que fazer agora</strong>{e(ficha["o_que_fazer"])}</div>',
             unsafe_allow_html=True,
         )
+
+    # O golpe depende de pressa e de segredo: mostrar o resultado para alguém antes de pagar quebra os dois.
+    # Os links do golpe vão desarmados no texto (site[.]com), para ninguém clicar sem querer.
+    compartilhar = texto_para_compartilhar(ficha, st.session_state.get("texto_analisado", ""))
+    st.subheader("Mostre para alguém de confiança")
+    if ficha["nivel_de_risco"] == "baixo":
+        st.markdown("Na dúvida, mande este resultado para um filho, neto ou amigo antes de pagar qualquer coisa.")
+    else:
+        st.markdown("Antes de pagar, mande este resultado para um filho, neto ou amigo. "
+                    "O golpista conta com a sua pressa e com o seu segredo.")
+    st.link_button("Mandar pelo WhatsApp", f"https://wa.me/?text={quote(compartilhar)}",
+                   icon=":material/send:", width="stretch")
+    with st.expander("Ver e copiar a mensagem"):
+        st.code(compartilhar, language=None, wrap_lines=True)
+        st.caption("No computador, o botão abre o WhatsApp Web. Se ele não estiver conectado, copie a mensagem "
+                   "pelo ícone no canto da caixa e cole onde quiser.")
 
     verificacoes = ficha.get("verificacoes") or []
     if verificacoes:
@@ -451,6 +475,7 @@ def executar_analise(mensagem, veio_de_exemplo, chave_print):
         return
     st.session_state.resultado = ficha
     st.session_state.texto_do_print = lido
+    st.session_state.texto_analisado = texto
     if lido:  # o print já foi usado: na próxima mensagem, ele não entra junto
         st.session_state.versao_print = st.session_state.get("versao_print", 0) + 1
     st.session_state.rolar_para_laudo = st.session_state.usos
