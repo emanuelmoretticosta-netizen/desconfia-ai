@@ -452,16 +452,16 @@ def analisar(mensagem, abrir_pagina=False):
 
     # Página do link, aberta pela Firecrawl enquanto a IA analisava (o texto dela não vai para a IA)
     if tarefa_pagina is not None:
-        try:
+        try:  # qualquer erro aqui não pode derrubar o laudo: ele só sai sem a parte da página
             resultado_pagina = tarefa_pagina.result(timeout=pagina.TEMPO_LIMITE + 5)
-        except Exception:
-            resultado_pagina = None
-        sinais_pagina = pagina.sinais_da_pagina(resultado_pagina)
-        if any(s["categoria"] in FAMILIA_SITE for s in sinais_regras):
-            # o endereço já denunciou a imitação: não repetir com o que a página diz ser
-            sinais_pagina = [s for s in sinais_pagina if s["categoria"] != "imitacao"]
-        sinais_regras += sinais_pagina
-        ficha["pagina"] = pagina.resumo_para_o_laudo(resultado_pagina)
+            sinais_pagina = pagina.sinais_da_pagina(resultado_pagina)
+            if any(s["categoria"] in FAMILIA_SITE for s in sinais_regras):
+                # o endereço já denunciou a imitação: não repetir com o que a página diz ser
+                sinais_pagina = [s for s in sinais_pagina if s["categoria"] != "imitacao"]
+            sinais_regras += sinais_pagina
+            ficha["pagina"] = pagina.resumo_para_o_laudo(resultado_pagina)
+        except Exception as erro:
+            print(f"[firecrawl] erro ao ler a página: {type(erro).__name__}: {erro}", flush=True)
 
     risco_final = risco_ia
     for regra in sinais_regras:

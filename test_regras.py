@@ -195,3 +195,15 @@ def test_analise_com_pagina_do_link(monkeypatch):
     assert ficha["nivel_de_risco"] == "alto"
     assert ficha["pagina"]["pede"] and ficha["pagina"]["marca"] == "Nubank"
     assert "pagina" not in analise.analisar("Oi, tudo bem? Veja isso: nubanck-seguranca.com/login")
+
+
+def test_pagina_com_titulo_em_lista_nao_quebra(monkeypatch):
+    import analise
+    import pagina
+    monkeypatch.setenv("FORCAR_MODO_SEGURANCA", "1")
+    monkeypatch.setattr(analise, "consultar_sites", lambda sites, ignorar=(): [])
+    estranha = dict(PAGINA_FALSA, titulo=["Nubank - Acesse sua conta", "outro"], destino=None)
+    assert pagina.sinais_da_pagina(dict(estranha, titulo=pagina._texto(estranha["titulo"])))
+    monkeypatch.setattr(pagina, "abrir_pagina", lambda endereco: estranha)  # formato inesperado
+    ficha = analise.analisar("Veja: algum-site-qualquer.com/x", abrir_pagina=True)
+    assert ficha["nivel_de_risco"] in ("baixo", "medio", "alto")  # o laudo sai mesmo assim

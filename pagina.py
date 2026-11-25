@@ -45,6 +45,13 @@ PEDIDOS = [
 _guardadas = {}  # endereço -> (momento, resultado)
 
 
+def _texto(valor):
+    """A Firecrawl às vezes devolve listas (ex.: título repetido na página): fica só o primeiro, como texto."""
+    if isinstance(valor, list):
+        valor = valor[0] if valor else None
+    return None if valor is None else str(valor)
+
+
 def _oficiais():
     return {o for _, (_, lista) in MARCAS.items() for o in lista}
 
@@ -85,14 +92,17 @@ def abrir_pagina(endereco):
             dados = json.loads(resposta.read().decode("utf-8"))
         info = (dados or {}).get("data") or {}
         meta = info.get("metadata") or {}
-        status = meta.get("statusCode")
+        try:
+            status = int(_texto(meta.get("statusCode")) or 200)
+        except ValueError:
+            status = None
         resultado.update({
-            "ok": bool(dados.get("success")) and (status is None or 200 <= int(status) < 400),
-            "titulo": meta.get("title"),
-            "destino": meta.get("url") or meta.get("sourceURL"),
+            "ok": bool(dados.get("success")) and status is not None and 200 <= status < 400,
+            "titulo": _texto(meta.get("title")),
+            "destino": _texto(meta.get("url") or meta.get("sourceURL")),
             "status": status,
-            "captura": info.get("screenshot"),
-            "texto": (info.get("markdown") or "")[:MAX_TEXTO],
+            "captura": _texto(info.get("screenshot")),
+            "texto": (_texto(info.get("markdown")) or "")[:MAX_TEXTO],
         })
     except urllib.error.HTTPError as erro:
         resultado["status"] = erro.code
