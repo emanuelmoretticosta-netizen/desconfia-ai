@@ -10,6 +10,8 @@ Projeto para o Hack Brasil 2026, trilha de **Cibersegurança**.
 
 **Teste agora:** [desconfia-ai.streamlit.app](https://desconfia-ai.streamlit.app) · **Página do projeto:** [emanuelmoretticosta-netizen.github.io/desconfia-ai](https://emanuelmoretticosta-netizen.github.io/desconfia-ai/)
 
+Se aparecer uma tela em inglês dizendo que o app está dormindo ("This app has gone to sleep"), clique em "Yes, get this app back up!" e espere cerca de 1 minuto. O plano gratuito do Streamlit desliga apps sem visitas.
+
 ## Em 30 segundos
 
 - **O problema:** a cada R$ 100 perdidos em golpes no Pix, só R$ 8,90 voltam para a vítima. Quem mais cai não sabe diferenciar uma oferta oficial de uma falsa.
@@ -156,8 +158,8 @@ Todas as mensagens de teste são fictícias.
 - **Base de testes da equipe** (`dados/testes_golpes.csv`): 40 mensagens, sendo 30 golpes de 10 tipos (falsa taxa, falsa venda, falsa caridade, falso investimento, falso programa de pontos, falso auxílio, falso site de vendas, falsa dívida, falsa central e falso parente) e 10 mensagens normais, incluindo avisos verdadeiros sobre golpes e um parente pedindo Pix **sem** trocar de número. Os 24 primeiros casos foram montados por Maria Clara de Andrade e Silva, e os demais têm como base alertas oficiais, com a fonte na própria planilha. Para rodar: `python avaliar_planilha.py`.
   **Resultado em 26/11/2026: 30 de 30 golpes com risco médio ou alto e 10 de 10 mensagens normais com risco baixo.** O detalhe de cada caso fica em `dados/resultados_testes.csv`.
   **No modo de segurança (sem a IA), as regras fixas sozinhas: 23 de 30 golpes e 10 de 10 mensagens normais**, ainda sem nenhum alarme falso. Ou seja: a IA faz diferença, e se ela cair o app continua útil. As regras cobrem padrões gerais de golpe (ameaça de bloqueio, pedido de dados por link, nome de marca com site que não é o oficial, prazo curto e pedido de doação por site desconhecido, este último tirado da biblioteca de golpes da equipe) e não foram escritas caso a caso para esta planilha.
-- **Testes automáticos** (`test_regras.py`): conferem as regras fixas, a detecção de sites que imitam marcas, a conferência dos trechos, o modo "já paguei", o modo de segurança, a leitura da página do link, o envio de print sem a IA, os links desarmados nas respostas do WhatsApp e no texto para alguém de confiança e a assinatura dos avisos do WhatsApp. Não usam a IA nem a internet e rodam sozinhos no GitHub a cada envio: o selo no topo desta página mostra o resultado.
-- **Teste independente** (`dados/testes_novos.csv`): 10 mensagens novas, escritas por Maria Clara de Andrade e Silva depois que as regras estavam prontas: 5 golpes (falsa taxa, falso investimento, falso auxílio, falsa dívida e falsa caridade) e 5 mensagens normais tiradas de anúncios e campanhas reais (loja on-line, consultoria de investimentos, vaquinha, venda de carro e imobiliária). Nenhuma regra foi ajustada para elas, e o teste foi rodado uma única vez. Para rodar: `python avaliar_planilha.py dados/testes_novos.csv`.
+- **Testes automáticos** (`test_regras.py`): conferem as regras fixas, a detecção de sites que imitam marcas, a conferência dos trechos, o modo "já paguei", o modo de segurança, a leitura da página do link, o envio de print sem a IA, os links desarmados nas respostas do WhatsApp e no texto para alguém de confiança, a orientação oficial da biblioteca, a leitura da planilha do teste independente e a assinatura dos avisos do WhatsApp. Não usam a IA nem a internet e rodam sozinhos no GitHub a cada envio: o selo no topo desta página mostra o resultado.
+- **Teste independente** (`dados/testes_novos.csv`): 10 mensagens novas, escritas por Maria Clara de Andrade e Silva depois que as regras estavam prontas: 5 golpes (falsa taxa, falso investimento, falso auxílio, falsa dívida e falsa caridade) e 5 mensagens normais tiradas de anúncios e campanhas reais (loja on-line, consultoria de investimentos, vaquinha, venda de carro e imobiliária). Elas vêm da planilha `Casos de Teste - Golpes Financeiros.xlsx`, aba "CT automatizados". Nenhuma regra foi ajustada para elas, e o teste foi rodado uma única vez. Para rodar: `python avaliar_planilha.py dados/testes_novos.csv`.
   **Resultado em 26/11/2026: 5 de 5 golpes com risco médio ou alto e 5 de 5 mensagens normais com risco baixo.** É uma amostra pequena: mostra que o app não foi ajustado só para a nossa base, mas não é uma taxa de acerto definitiva. O detalhe fica em `dados/resultados_testes_novos.csv`.
 - **Teste rápido** (`testes_golpes.py`): um golpe de cada um dos 8 tipos mais relatados e 4 mensagens normais. Resultado: 12 de 12.
 
@@ -208,7 +210,7 @@ O bot responde no WhatsApp de verdade, pelo sandbox oficial da 360dialog, parcei
 | `test_regras.py` | Testes automáticos que rodam no GitHub a cada envio |
 | `manter_acordado.py` | Visita o app a cada hora para ele não "dormir" (GitHub Actions) |
 | `gerar_biblioteca.py` | Converte a biblioteca de golpes da equipe (`Tipos de Golpes.xlsx`) no arquivo que o app lê |
-| `dados/` | Base de testes (`testes_golpes.csv`), o último resultado (`resultados_testes.csv`) e a biblioteca de golpes usada no laudo (`biblioteca_golpes.csv`) |
+| `dados/` | Base de testes (`testes_golpes.csv`), o último resultado (`resultados_testes.csv`), as mensagens do teste independente e o resultado delas (`testes_novos.csv` e `resultados_testes_novos.csv`) e a biblioteca de golpes usada no laudo (`biblioteca_golpes.csv`) |
 | `bot_whatsapp.py` | Servidor do bot: recebe a mensagem, analisa e responde |
 | `index.html` | Página pública do projeto |
 

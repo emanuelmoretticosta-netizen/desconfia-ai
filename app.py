@@ -522,13 +522,17 @@ if modo == MODO_PAGUEI:
     st.stop()
 
 painel_entrada = st.container(border=True, key="painel_entrada")
+if ocupado:
+    # A caixa de texto NÃO usa disabled: com um clique rápido (toque no touchpad), o texto colado
+    # chega junto com o clique, e um campo desativado descartaria o texto. Ela só fica travada na tela.
+    st.markdown("<style>.st-key-mensagem textarea { pointer-events: none; opacity: 0.6; }</style>",
+                unsafe_allow_html=True)
 with painel_entrada:
     mensagem = st.text_area(
         "Mensagem recebida",
         key="mensagem",
         height=180,
         max_chars=MAX_CARACTERES,
-        disabled=ocupado,
         placeholder="Cole aqui a mensagem do WhatsApp, SMS ou e-mail que você recebeu. Também pode contar o que aconteceu, por exemplo uma ligação.",
     )
 
