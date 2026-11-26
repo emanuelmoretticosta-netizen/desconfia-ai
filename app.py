@@ -297,6 +297,8 @@ def avisar(texto, tipo="aviso"):
 def mostrar_laudo(ficha):
     """Desenha o laudo de uma mensagem analisada."""
     titulo, frase = FAIXAS[ficha["nivel_de_risco"]]
+    if ficha["nivel_de_risco"] == "alto" and not ficha.get("sites"):
+        frase = "Há sinais fortes de golpe. Não pague e não passe seus dados."  # sem link na mensagem, "não clique em links" não faz sentido
     sem_ia = ficha.get("modo") == "seguranca"
     if sem_ia and ficha["nivel_de_risco"] == "baixo":
         frase = ("Nossas regras fixas não encontraram sinais clássicos de golpe, mas a análise completa está "
@@ -385,7 +387,8 @@ def mostrar_laudo(ficha):
                 f'{e(v["fonte"])}</a></span></div>'
             )
         st.markdown("".join(partes), unsafe_allow_html=True)
-        st.caption("Um site antigo não quer dizer que seja confiável: golpistas também usam sites antigos que foram invadidos.")
+        if any(v.get("situacao") == "registrado" and (v.get("dias") or 0) > 180 for v in verificacoes):
+            st.caption("Um site antigo não quer dizer que seja confiável: golpistas também usam sites antigos que foram invadidos.")
 
     dados_pagina = ficha.get("pagina")
     if dados_pagina:
@@ -507,7 +510,7 @@ LOGO = (
 st.markdown(
     f'<div class="topo">{LOGO}<div><div class="marca" role="heading" aria-level="1">Desconfia<span>.AI</span></div>'
     '<div class="lema">A IA que desconfia por você</div></div></div>'
-    '<p class="sub">Recebeu uma oferta de dinheiro estranha? Cole a mensagem, envie um print ou conte o que '
+    '<p class="sub">Recebeu uma mensagem, um link ou uma ligação suspeita? Cole a mensagem, envie um print ou conte o que '
     "aconteceu. A gente aponta os sinais de golpe e diz o que fazer.</p>",
     unsafe_allow_html=True,
 )

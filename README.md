@@ -14,7 +14,7 @@ Se aparecer uma tela em inglês dizendo que o app está dormindo ("This app has 
 
 ## Em 30 segundos
 
-- **O problema:** a cada R$ 100 perdidos em golpes no Pix, só R$ 8,90 voltam para a vítima. Quem mais cai não sabe diferenciar uma oferta oficial de uma falsa.
+- **O problema:** a cada R$ 100 perdidos em golpes no Pix, só R$ 8,90 voltam para a vítima. Quem mais cai não sabe diferenciar uma mensagem oficial de uma falsa.
 - **O que o Desconfia.AI faz:** a pessoa cola a mensagem, envia um print ou encaminha no WhatsApp, e em segundos vê o risco, cada sinal de golpe com o trecho marcado e o que fazer.
 - **Com provas, não só a opinião de uma IA:** a idade do site no registro oficial, o alerta de site que imita marca e a página do link aberta com segurança pela Firecrawl, com a captura da tela.
 - **Antes de pagar,** um botão manda o resultado para alguém de confiança. **Depois de pagar,** o passo a passo do MED, com textos prontos para o banco e o boletim.
@@ -31,7 +31,8 @@ Golpes financeiros digitais estão em alta no Brasil e chegam principalmente pel
 
 - falsos investimentos com rendimento "garantido";
 - empréstimos fáceis que exigem uma "taxa de liberação";
-- falsos programas do governo, como Valores a Receber e Desenrola Brasil.
+- falsos programas do governo, como Valores a Receber e Desenrola Brasil;
+- falsos parentes e falsas centrais de banco, que pedem Pix com pressa.
 
 O tamanho do problema:
 
@@ -39,7 +40,7 @@ O tamanho do problema:
 - **14% dos brasileiros, cerca de 24 milhões de pessoas,** caíram em golpe com Pix ou boleto falso, com prejuízo estimado em R$ 29 bilhões (pesquisa Datafolha com o Fórum Brasileiro de Segurança Pública, 2025, [via Fast Company Brasil](https://fastcompanybrasil.com/money/golpes-com-pix-e-boletos-falsos-atingem-24-milhoes-no-brasil/)).
 - **A cada R$ 100 perdidos em golpes no Pix, só R$ 8,90 voltam** para a vítima: de janeiro de 2022 a abril de 2026, foram R$ 24,5 bilhões em golpes e R$ 2,2 bilhões devolvidos (dados do Banco Central, [levantamento do O POVO+](https://mais.opovo.com.br/reportagens-especiais/2026/07/24/a-cada-rs-100-em-golpes-no-pix-instituicoes-devolvem-apenas-rs-890.html)). Por isso o Desconfia.AI age **antes** do pagamento. E, se a pessoa já pagou, mostra o caminho mais rápido para pedir o dinheiro de volta.
 
-Em um levantamento com 16 mil anúncios que citavam "empréstimo" nas plataformas da Meta, **52% tinham indícios de fraude** ([Projeto Brief, publicado pelo Times Brasil](https://timesbrasil.com.br/brasil/meta-e-o-principal-canal-de-fraudes-financeiras-no-brasil-mostra-investigacao/)). Quem mais cai não sabe diferenciar uma oferta oficial de uma falsa. E quem já pagou, muitas vezes, nem sabe que existe um caminho oficial para pedir o dinheiro de volta.
+Em um levantamento com 16 mil anúncios que citavam "empréstimo" nas plataformas da Meta, **52% tinham indícios de fraude** ([Projeto Brief, publicado pelo Times Brasil](https://timesbrasil.com.br/brasil/meta-e-o-principal-canal-de-fraudes-financeiras-no-brasil-mostra-investigacao/)). Quem mais cai não sabe diferenciar uma mensagem oficial de uma falsa. E quem já pagou, muitas vezes, nem sabe que existe um caminho oficial para pedir o dinheiro de volta.
 
 ## A solução
 
@@ -175,7 +176,7 @@ O bot responde no WhatsApp de verdade, pelo sandbox oficial da 360dialog, parcei
 | --- | --- | --- |
 | Apps que dizem se uma mensagem "parece golpe" | Só a opinião da IA, sem provas | Confere em fonte oficial e mostra a fonte |
 | Questionários de risco | A pessoa precisa responder tudo sozinha | Lê a mensagem automaticamente |
-| Bloqueio de chaves Pix pelos bancos | Só age na hora do pagamento e depois de denúncias | Age antes, no momento em que a oferta chega |
+| Bloqueio de chaves Pix pelos bancos | Só age na hora do pagamento e depois de denúncias | Age antes, no momento em que a mensagem chega |
 | Nenhuma | Quem já caiu fica sem orientação | Guia a recuperação pelo MED, com textos prontos para o banco e o boletim |
 
 ## Como chega a quem precisa e quanto custa

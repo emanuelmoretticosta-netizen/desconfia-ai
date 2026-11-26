@@ -122,6 +122,8 @@ def montar_resposta(ficha):
     o WhatsApp transformaria "site-do-golpe.com" em link clicável dentro do nosso próprio alerta."""
     d = desarmar_links
     titulo, frase = FAIXAS[ficha["nivel_de_risco"]]
+    if ficha["nivel_de_risco"] == "alto" and not ficha.get("sites"):
+        frase = "Há sinais fortes de golpe. Não pague e não passe seus dados."  # sem link na mensagem, "não clique em links" não faz sentido
     partes = [f"{titulo}\n{frase}"]
 
     if ficha.get("explicacao_simples"):
