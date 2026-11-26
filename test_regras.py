@@ -226,3 +226,17 @@ def test_texto_para_mandar_a_alguem_de_confianca(monkeypatch):
     normal = analise.texto_para_compartilhar(analise.analisar(EXEMPLO_LEGITIMO), EXEMPLO_LEGITIMO)
     assert "RISCO BAIXO" in normal
 
+
+def test_resposta_do_whatsapp_sem_link_do_golpe(monkeypatch):
+    """O WhatsApp transforma "site.com" em link: a resposta do bot não pode ter link clicável para o golpe."""
+    import analise
+    from bot_whatsapp import montar_resposta
+    monkeypatch.setenv("FORCAR_MODO_SEGURANCA", "1")
+    monkeypatch.setattr(analise, "consultar_sites", lambda sites, ignorar=(): [
+        {"site": s, "situacao": "nao_registrado", "dias": None, "registrado_em": None,
+         "fonte": "registro oficial do domínio (RDAP)", "link": "https://rdap.org"} for s in sites])
+    for mensagem in (analise.EXEMPLO_MARCA, EXEMPLO_GOLPE):
+        resposta = montar_resposta(analise.analisar(mensagem))
+        assert "[.]com" in resposta
+        assert not (analise.sites_do_texto(resposta) - {"desconfia.ai"})
+

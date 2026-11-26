@@ -44,7 +44,7 @@ from datetime import date
 
 from flask import Flask, request
 
-from analise import analisar, juntar_sinais
+from analise import analisar, desarmar_links, juntar_sinais
 from ja_paguei import parece_ja_paguei, resposta_whatsapp
 from verificacoes import texto_dos_dias
 
@@ -118,11 +118,14 @@ def primeira_vez(id_mensagem):
 # ---------- Resposta ----------
 
 def montar_resposta(ficha):
+    """Monta a resposta do WhatsApp. Tudo o que vem da mensagem passa por desarmar_links:
+    o WhatsApp transformaria "site-do-golpe.com" em link clicável dentro do nosso próprio alerta."""
+    d = desarmar_links
     titulo, frase = FAIXAS[ficha["nivel_de_risco"]]
     partes = [f"{titulo}\n{frase}"]
 
     if ficha.get("explicacao_simples"):
-        partes.append(ficha["explicacao_simples"])
+        partes.append(d(ficha["explicacao_simples"]))
 
     if ficha.get("modo") == "seguranca":
         partes.append("_Modo de segurança: a análise completa está fora do ar agora, então usei só as "
@@ -132,9 +135,9 @@ def montar_resposta(ficha):
     if sinais:
         linhas = ["*Por que desconfiar*"]
         for item in sinais:
-            linhas.append(f"• {item['sinal']}")
+            linhas.append(f"• {d(item['sinal'])}")
             if item["trecho"]:
-                linhas.append(f'   _Na mensagem: "{item["trecho"]}"_')
+                linhas.append(f'   _Na mensagem: "{d(item["trecho"])}"_')
         partes.append("\n".join(linhas))
 
     verificacoes = ficha.get("verificacoes") or []
@@ -150,11 +153,11 @@ def montar_resposta(ficha):
                 texto = "não está registrado. Ninguém é dono desse endereço"
             else:
                 texto = "não conseguimos consultar o registro agora"
-            linhas.append(f"• {v['site']}: {texto} (fonte: {v['fonte']})")
+            linhas.append(f"• {d(v['site'])}: {texto} (fonte: {v['fonte']})")
         partes.append("\n".join(linhas))
 
     if ficha.get("o_que_fazer"):
-        partes.append(f"*O que fazer agora*\n{ficha['o_que_fazer']}")
+        partes.append(f"*O que fazer agora*\n{d(ficha['o_que_fazer'])}")
 
     if ficha["nivel_de_risco"] in ("alto", "medio"):
         partes.append("🆘 Já fez o pagamento? Mande *já paguei* que eu mostro como pedir o dinheiro de volta.")
