@@ -23,9 +23,11 @@ except ImportError:
     pass
 
 import base64
+import csv
 import json
 import os
 import re
+from pathlib import Path
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -74,7 +76,8 @@ Responda APENAS com um JSON neste formato:
   "sinais": [{"sinal": frase completa explicando por que aquilo é suspeito, "trecho": trecho exato da mensagem}],
   "nivel_de_risco": "baixo" ou "medio" ou "alto",
   "explicacao_simples": até 3 frases para uma pessoa sem prática com celular,
-  "o_que_fazer": 1 ou 2 frases com a ação recomendada
+  "o_que_fazer": 1 ou 2 frases com a ação recomendada,
+  "tipo_golpe": código do tipo de golpe (lista no fim destas instruções), ou null
 }
 
 Regras:
@@ -104,6 +107,68 @@ Regras:
 - Se não encontrar sinais, use risco "baixo", deixe "sinais" vazio e oriente a confirmar
   pelo canal oficial antes de pagar qualquer coisa.
 """
+
+# ---------- Biblioteca de golpes da equipe (orientação oficial no laudo) ----------
+# Montada pela Maria Clara a partir de fontes oficiais (planilha "Tipos de Golpes.xlsx").
+# O arquivo dados/biblioteca_golpes.csv é gerado dela por gerar_biblioteca.py.
+
+ARQUIVO_BIBLIOTECA = Path(__file__).with_name("dados") / "biblioteca_golpes.csv"
+ORGAOS_DAS_FONTES = {"gov.br/mj/": "Ministério da Justiça", "pc.rs.gov.br": "Polícia Civil do Rio Grande do Sul"}
+
+
+def carregar_biblioteca():
+    """Lê a biblioteca de golpes. Sem o arquivo, o laudo sai sem a orientação oficial."""
+    try:
+        with ARQUIVO_BIBLIOTECA.open(encoding="utf-8") as arquivo:
+            return {linha["id"]: linha for linha in csv.DictReader(arquivo) if linha.get("id")}
+    except (OSError, csv.Error, KeyError):
+        return {}
+
+
+BIBLIOTECA = carregar_biblioteca()
+
+
+def nome_do_tipo(tipo):
+    """ "Falsa central/ Falso suporte " vira "Falsa central ou falso suporte". """
+    t = re.sub(r"\s*/\s*", " ou ", " ".join(str(tipo).split()))
+    return t[:1].upper() + t[1:].lower()
+
+
+if BIBLIOTECA:
+    INSTRUCOES += ('- Em "tipo_golpe", use o código do tipo de golpe desta lista que mais combina com a mensagem, '
+                   'ou null se o risco for baixo ou se nenhum combinar: '
+                   + "; ".join(f"{codigo} {nome_do_tipo(r['tipo'])}" for codigo, r in BIBLIOTECA.items()) + ".\n")
+
+# Quando a IA não aponta o tipo (ou no modo de segurança), as regras dedicadas apontam
+TIPO_PELA_REGRA = [("parente", "G_13"), ("emprestimo", "G_14"), ("conta_segura", "G_02"), ("central", "G_02"),
+                   ("doacao", "G_06"), ("taxa", "G_10"), ("ganho", "G_07")]
+
+
+def orientacao_oficial(tipo_ia, sinais_regras, risco):
+    """Devolve a orientação oficial da biblioteca para o tipo de golpe, só com risco médio ou alto."""
+    if risco not in ("medio", "alto") or not BIBLIOTECA:
+        return None
+    tipo = str(tipo_ia or "").strip().upper()
+    if tipo not in BIBLIOTECA:
+        categorias = {s["categoria"] for s in sinais_regras}
+        tipo = next((t for c, t in TIPO_PELA_REGRA if c in categorias and t in BIBLIOTECA), None)
+    if tipo is None:
+        return None
+    registro = BIBLIOTECA[tipo]
+    passos = [p.strip().rstrip(".") for p in registro.get("como_proceder", "").split(";") if p.strip()]
+    if not passos:
+        return None
+    link = registro.get("link", "")
+    fonte = registro.get("fonte", "").replace(" - PC RS", "").replace(" - ", ", ")
+    orgao = next((nome for trecho, nome in ORGAOS_DAS_FONTES.items() if trecho in link), None)
+    return {
+        "id": tipo,
+        "tipo": nome_do_tipo(registro.get("tipo", "")),
+        "passos": [p[:1].upper() + p[1:] + "." for p in passos],
+        "fonte": f"{fonte} ({orgao})" if orgao else fonte,
+        "link": link if link.startswith("https://") else "",
+    }
+
 
 # Palavras que indicam que a mensagem usa o nome do governo ou de um programa oficial
 NOMES_OFICIAIS = [
@@ -472,6 +537,7 @@ def analisar(mensagem, abrir_pagina=False):
         ficha["explicacao_simples"] = EXPLICACAO_SEGURANCA[risco_final]
         ficha["o_que_fazer"] = O_QUE_FAZER_SEGURANCA[risco_final]
 
+    ficha["orientacao"] = orientacao_oficial(ficha.get("tipo_golpe"), sinais_regras, risco_final)
     ficha["modo"] = modo
     ficha["nivel_de_risco_ia"] = risco_ia if modo == "completo" else None
     ficha["nivel_de_risco"] = risco_final

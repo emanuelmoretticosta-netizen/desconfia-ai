@@ -159,6 +159,13 @@ def montar_resposta(ficha):
     if ficha.get("o_que_fazer"):
         partes.append(f"*O que fazer agora*\n{d(ficha['o_que_fazer'])}")
 
+    orientacao = ficha.get("orientacao")
+    if orientacao:
+        linhas = [f"*Orientação oficial para {orientacao['tipo'].lower()}*"]
+        linhas += [f"• {passo}" for passo in orientacao["passos"]]
+        linhas.append(f"_Fonte: {orientacao['fonte']}_")
+        partes.append("\n".join(linhas))
+
     if ficha["nivel_de_risco"] in ("alto", "medio"):
         partes.append("🆘 Já fez o pagamento? Mande *já paguei* que eu mostro como pedir o dinheiro de volta.")
 

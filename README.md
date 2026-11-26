@@ -16,7 +16,7 @@ Projeto para o Hack Brasil 2026, trilha de **Cibersegurança**.
 - **O que o Desconfia.AI faz:** a pessoa cola a mensagem, envia um print ou encaminha no WhatsApp, e em segundos vê o risco, cada sinal de golpe com o trecho marcado e o que fazer.
 - **Com provas, não só a opinião de uma IA:** a idade do site no registro oficial, o alerta de site que imita marca e a página do link aberta com segurança pela Firecrawl, com a captura da tela.
 - **Antes de pagar,** um botão manda o resultado para alguém de confiança. **Depois de pagar,** o passo a passo do MED, com textos prontos para o banco e o boletim.
-- **Resultados:** nos nossos testes, acertou os 30 golpes e não deu alarme falso nas 10 mensagens normais. Sem a IA, o modo de segurança ainda pega 23 dos 30.
+- **Resultados:** na base da equipe, acertou os 30 golpes e não deu alarme falso nas 10 mensagens normais. No teste independente, com 10 mensagens novas, acertou todas. Sem a IA, o modo de segurança ainda pega 23 dos 30 golpes.
 - **Feito para quem tem dificuldade de leitura:** linguagem simples e a fonte Atkinson Hyperlegible, criada pelo Braille Institute para pessoas com baixa visão.
 
 > Status: em desenvolvimento durante o hackathon (04/11 a 30/11/2026).
@@ -71,7 +71,7 @@ O Desconfia.AI **nunca diz que uma mensagem é segura**: mostra sinais de risco 
 4. **Site que imita marca conhecida (typosquatting):** o app compara cada endereço da mensagem com os sites oficiais das marcas mais imitadas em golpes (bancos, lojas, Correios, Serasa). Se o endereço usa o nome da marca, ou uma versão com erro de digitação como "nubanck", e não é o site oficial, o laudo avisa e mostra o endereço verdadeiro. A lista está em `marcas.py`.
 5. **Consulta em fonte oficial:** a idade do site da mensagem, no registro oficial de domínios (protocolo RDAP; para sites .br, o Registro.br). Site criado há poucos dias, ou que nem está registrado, é sinal forte de golpe.
 6. **Página do link, sem abrir o site:** a página do primeiro link suspeito é aberta pela [Firecrawl](https://www.firecrawl.dev), nos servidores dela, ao mesmo tempo que a IA analisa. Regras fixas conferem se a página pede senha, dados do cartão, código, CPF, Pix ou para instalar um aplicativo, e se ela se apresenta como uma marca sem ser o site oficial. O laudo mostra o título, o endereço, o que a página pede e uma captura da tela.
-7. **Laudo:** nível de risco, sinais com o trecho da mensagem, o que fazer e as fontes consultadas. Um botão manda o resultado para alguém de confiança pelo WhatsApp, com os links do golpe desarmados.
+7. **Laudo:** nível de risco, sinais com o trecho da mensagem, o que fazer e as fontes consultadas. Quando o risco é médio ou alto, o laudo traz a **orientação oficial** para o tipo de golpe (por exemplo, falsa central ou falsa taxa), tirada da biblioteca de golpes da equipe, com a fonte: o Glossário de Fraudes e Golpes Digitais do Ministério da Justiça ou a cartilha da Polícia Civil do RS. Um botão manda o resultado para alguém de confiança pelo WhatsApp, com os links do golpe desarmados.
 8. **Modo "já paguei":** passo a passo para pedir o dinheiro de volta pelo **MED** (Mecanismo Especial de Devolução do Pix), na ordem certa, e textos prontos para o banco e para o boletim de ocorrência, já preenchidos com os dados da mensagem analisada. No WhatsApp, basta mandar "já paguei".
 
 ## Arquitetura
@@ -133,8 +133,9 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 
 | Já funciona | Em construção até 30/11 |
 | --- | --- |
-| App no ar, com laudo em linguagem simples | Orientação oficial de cada tipo de golpe no laudo |
-| Sinais de golpe com o trecho da mensagem marcado | Teste com mensagens novas, que não foram usadas no desenvolvimento |
+| App no ar, com laudo em linguagem simples | Testes com pessoas reais |
+| Sinais de golpe com o trecho da mensagem marcado | |
+| Orientação oficial do tipo de golpe no laudo, da biblioteca da equipe com fontes do governo | |
 | Regras fixas, incluindo os golpes mais relatados, e defesa contra prompt injection | |
 | Envio de print da conversa: a IA lê o texto e o app analisa | |
 | Idade do site no registro oficial de domínios | |
@@ -142,6 +143,7 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 | Modo "já paguei", com o passo a passo do MED e textos prontos | |
 | Protótipo no WhatsApp (em teste) | |
 | Testado com 40 mensagens: 30 golpes de 10 tipos e 10 normais | |
+| Teste independente com 10 mensagens novas: acertou todas | |
 | Modo de segurança: o laudo sai mesmo se a IA cair | |
 | Página do link aberta pela Firecrawl: o laudo mostra o que ela pede, sem ninguém abrir o site | |
 | 8 exemplos prontos no app: um clique e o laudo aparece | |
@@ -152,12 +154,14 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 Todas as mensagens de teste são fictícias.
 
 - **Base de testes da equipe** (`dados/testes_golpes.csv`): 40 mensagens, sendo 30 golpes de 10 tipos (falsa taxa, falsa venda, falsa caridade, falso investimento, falso programa de pontos, falso auxílio, falso site de vendas, falsa dívida, falsa central e falso parente) e 10 mensagens normais, incluindo avisos verdadeiros sobre golpes e um parente pedindo Pix **sem** trocar de número. Os 24 primeiros casos foram montados por Maria Clara de Andrade e Silva, e os demais têm como base alertas oficiais, com a fonte na própria planilha. Para rodar: `python avaliar_planilha.py`.
-  **Resultado em 23/11/2026: 30 de 30 golpes com risco médio ou alto e 10 de 10 mensagens normais com risco baixo.** O detalhe de cada caso fica em `dados/resultados_testes.csv`.
+  **Resultado em 26/11/2026: 30 de 30 golpes com risco médio ou alto e 10 de 10 mensagens normais com risco baixo.** O detalhe de cada caso fica em `dados/resultados_testes.csv`.
   **No modo de segurança (sem a IA), as regras fixas sozinhas: 23 de 30 golpes e 10 de 10 mensagens normais**, ainda sem nenhum alarme falso. Ou seja: a IA faz diferença, e se ela cair o app continua útil. As regras cobrem padrões gerais de golpe (ameaça de bloqueio, pedido de dados por link, nome de marca com site que não é o oficial, prazo curto e pedido de doação por site desconhecido, este último tirado da biblioteca de golpes da equipe) e não foram escritas caso a caso para esta planilha.
 - **Testes automáticos** (`test_regras.py`): conferem as regras fixas, a detecção de sites que imitam marcas, a conferência dos trechos, o modo "já paguei", o modo de segurança, a leitura da página do link, o envio de print sem a IA, os links desarmados nas respostas do WhatsApp e no texto para alguém de confiança e a assinatura dos avisos do WhatsApp. Não usam a IA nem a internet e rodam sozinhos no GitHub a cada envio: o selo no topo desta página mostra o resultado.
+- **Teste independente** (`dados/testes_novos.csv`): 10 mensagens novas, escritas por Maria Clara de Andrade e Silva depois que as regras estavam prontas: 5 golpes (falsa taxa, falso investimento, falso auxílio, falsa dívida e falsa caridade) e 5 mensagens normais tiradas de anúncios e campanhas reais (loja on-line, consultoria de investimentos, vaquinha, venda de carro e imobiliária). Nenhuma regra foi ajustada para elas, e o teste foi rodado uma única vez. Para rodar: `python avaliar_planilha.py dados/testes_novos.csv`.
+  **Resultado em 26/11/2026: 5 de 5 golpes com risco médio ou alto e 5 de 5 mensagens normais com risco baixo.** É uma amostra pequena: mostra que o app não foi ajustado só para a nossa base, mas não é uma taxa de acerto definitiva. O detalhe fica em `dados/resultados_testes_novos.csv`.
 - **Teste rápido** (`testes_golpes.py`): um golpe de cada um dos 8 tipos mais relatados e 4 mensagens normais. Resultado: 12 de 12.
 
-Transparência: as regras foram ajustadas durante o desenvolvimento usando essa base, então ela ainda não é um teste independente. Os links da planilha usam terminações reservadas (.invalid, .test, .example), que não existem na internet, e são trocados por .com só na hora da análise, para que a IA não perceba que é um teste.
+Transparência: as regras foram ajustadas durante o desenvolvimento usando a base da equipe, então ela não é um teste independente. Por isso existe o teste com mensagens novas, acima. Os links da planilha usam terminações reservadas (.invalid, .test, .example), que não existem na internet, e são trocados por .com só na hora da análise, para que a IA não perceba que é um teste.
 
 ### Sobre o WhatsApp
 
@@ -202,8 +206,9 @@ O bot responde no WhatsApp de verdade, pelo sandbox oficial da 360dialog, parcei
 | `testes_golpes.py` | Teste rápido com os 8 tipos de golpe mais relatados e mensagens normais |
 | `avaliar_planilha.py` | Roda a base de testes da equipe e calcula o acerto |
 | `test_regras.py` | Testes automáticos que rodam no GitHub a cada envio |
-| `manter_acordado.py` | Visita o app a cada 4 horas para ele não "dormir" (GitHub Actions) |
-| `dados/` | Base de testes (`testes_golpes.csv`) e o último resultado (`resultados_testes.csv`) |
+| `manter_acordado.py` | Visita o app a cada hora para ele não "dormir" (GitHub Actions) |
+| `gerar_biblioteca.py` | Converte a biblioteca de golpes da equipe (`Tipos de Golpes.xlsx`) no arquivo que o app lê |
+| `dados/` | Base de testes (`testes_golpes.csv`), o último resultado (`resultados_testes.csv`) e a biblioteca de golpes usada no laudo (`biblioteca_golpes.csv`) |
 | `bot_whatsapp.py` | Servidor do bot: recebe a mensagem, analisa e responde |
 | `index.html` | Página pública do projeto |
 

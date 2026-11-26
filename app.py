@@ -100,6 +100,8 @@ st.markdown(
       .passos strong { display: block; font-size: 1.08rem; }
       .passos span { color: #4d5b6e; }
       .dados td:first-child { color: #4d5b6e; white-space: nowrap; }
+      .oficial { padding-left: 1.3rem; margin: 8px 0 6px; }
+      .oficial li { margin: 0 0 6px; }
       [data-testid="stFileUploaderDropzoneInstructions"] > div > span,
       [data-testid="stFileUploaderDropzoneInstructions"] > div > small { display: none; }
       [data-testid="stFileUploaderDropzoneInstructions"] > div::before {
@@ -340,6 +342,19 @@ def mostrar_laudo(ficha):
     if ficha.get("o_que_fazer"):
         st.markdown(
             f'<div class="fazer"><strong>O que fazer agora</strong>{e(ficha["o_que_fazer"])}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # Orientação oficial para o tipo de golpe, da biblioteca da equipe (fontes do governo)
+    orientacao = ficha.get("orientacao")
+    if orientacao:
+        st.subheader("Orientação oficial")
+        passos = "".join(f"<li>{e(p)}</li>" for p in orientacao["passos"])
+        fonte = (f'<a href="{e(orientacao["link"])}" target="_blank" rel="noopener">{e(orientacao["fonte"])}</a>'
+                 if orientacao.get("link") else e(orientacao["fonte"]))
+        st.markdown(
+            f'Para golpes do tipo <strong>{e(orientacao["tipo"].lower())}</strong>, a fonte oficial orienta:'
+            f'<ul class="oficial">{passos}</ul><span class="trecho">Fonte: {fonte}</span>',
             unsafe_allow_html=True,
         )
 

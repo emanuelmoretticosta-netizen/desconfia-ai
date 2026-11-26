@@ -240,3 +240,35 @@ def test_resposta_do_whatsapp_sem_link_do_golpe(monkeypatch):
         assert "[.]com" in resposta
         assert not (analise.sites_do_texto(resposta) - {"desconfia.ai"})
 
+
+def test_biblioteca_e_orientacao_oficial(monkeypatch):
+    """A biblioteca da equipe vira a orientação oficial do laudo, com a fonte e sem link de rastreamento."""
+    import analise
+    assert len(analise.BIBLIOTECA) >= 12
+    for registro in analise.BIBLIOTECA.values():
+        assert registro["link"].startswith("https://") and "utm_" not in registro["link"]
+        assert registro["como_proceder"]
+    monkeypatch.setenv("FORCAR_MODO_SEGURANCA", "1")
+    monkeypatch.setattr(analise, "consultar_sites", lambda sites, ignorar=(): [])
+    golpe = analise.analisar(EXEMPLO_GOLPE)
+    assert golpe["orientacao"]["id"] == "G_10" and golpe["orientacao"]["passos"]
+    assert analise.analisar(analise.EXEMPLO_PARENTE)["orientacao"]["id"] == "G_13"
+    assert analise.analisar(analise.EXEMPLO_EMPRESTIMO)["orientacao"]["id"] == "G_14"
+    assert analise.analisar(EXEMPLO_LEGITIMO)["orientacao"] is None   # risco baixo: sem orientação
+    # Código inventado pela IA é ignorado e a regra decide
+    sinais = [{"categoria": "doacao", "sinal": "x", "risco": "medio"}]
+    assert analise.orientacao_oficial("G_99", sinais, "medio")["id"] == "G_06"
+    assert analise.orientacao_oficial("g_04", [], "alto")["id"] == "G_04"
+    assert analise.orientacao_oficial("G_04", [], "baixo") is None
+
+
+def test_planilha_de_mensagens_novas():
+    """O teste independente lê a planilha da Maria: link em formato [texto](link) e "Grupo controle"."""
+    from avaliar_planilha import ENTRADA, eh_mensagem_normal
+    linhas = list(csv.DictReader(ENTRADA.with_name("testes_novos.csv").open(encoding="utf-8-sig")))
+    assert len(linhas) == 10
+    assert sum(eh_mensagem_normal(linha) for linha in linhas) == 5
+    for linha in linhas:
+        mensagem = montar_mensagem(linha)
+        assert "](" not in mensagem and ".example" not in mensagem
+
