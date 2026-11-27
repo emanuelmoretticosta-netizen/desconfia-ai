@@ -19,7 +19,7 @@ Se aparecer uma tela em inglês dizendo que o app está dormindo ("This app has 
 - **Com provas, não só a opinião de uma IA:** a idade do site no registro oficial, o alerta de site que imita marca e a página do link aberta com segurança pela Firecrawl, com a captura da tela.
 - **Antes de pagar,** um botão manda o resultado para alguém de confiança. **Depois de pagar,** o passo a passo do MED, com textos prontos para o banco e o boletim.
 - **Resultados:** na base da equipe, acertou os 30 golpes e não deu alarme falso nas 10 mensagens normais. No teste independente, com 10 mensagens novas, acertou todas. Sem a IA, o modo de segurança ainda pega 23 dos 30 golpes.
-- **Testado com pessoas de fora da equipe:** pelo menos 16 pessoas usaram o app e 8 deram retorno: 7 disseram que confiam no resultado e 1 respondeu "talvez". A sugestão foi mostrar mais fontes.
+- **Testado com pessoas de fora da equipe:** pelo menos 17 pessoas usaram o app e 9 deram retorno: 8 disseram que confiam no resultado e 1 respondeu "talvez". A sugestão foi mostrar mais fontes.
 - **Feito para quem tem dificuldade de leitura:** linguagem simples e a fonte Atkinson Hyperlegible, criada pelo Braille Institute para pessoas com baixa visão.
 
 > Feito durante o Hack Brasil 2026, de 04/11 a 30/11/2026.
@@ -152,7 +152,7 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 | Página do link aberta pela Firecrawl: o laudo mostra o que ela pede, sem ninguém abrir o site |
 | 8 exemplos prontos no app: um clique e o laudo aparece |
 | Botão para mandar o resultado a alguém de confiança pelo WhatsApp |
-| Testado por pelo menos 16 pessoas de fora da equipe: 7 das 8 que deram retorno confiam no resultado |
+| Testado por pelo menos 17 pessoas de fora da equipe: 8 das 9 que deram retorno confiam no resultado |
 
 ### Testes
 
@@ -165,7 +165,7 @@ Todas as mensagens de teste são fictícias.
 - **Testes automáticos** (`test_regras.py`): conferem as regras fixas, a detecção de sites que imitam marcas, a conferência dos trechos, o modo "já paguei", o modo de segurança, a leitura da página do link, o envio de print sem a IA, os links desarmados nas respostas do WhatsApp e no texto para alguém de confiança, a orientação oficial da biblioteca, a leitura da planilha do teste independente e a assinatura dos avisos do WhatsApp. Não usam a IA nem a internet e rodam sozinhos no GitHub a cada envio: o selo no topo desta página mostra o resultado.
 - **Teste independente** (`dados/testes_novos.csv`): 10 mensagens novas, escritas por Maria Clara de Andrade e Silva depois que as regras estavam prontas: 5 golpes (falsa taxa, falso investimento, falso auxílio, falsa dívida e falsa caridade) e 5 mensagens normais tiradas de anúncios e campanhas reais (loja on-line, consultoria de investimentos, vaquinha, venda de carro e imobiliária). Elas vêm da planilha `Casos de Teste - Golpes Financeiros.xlsx`, aba "CT automatizados". Nenhuma regra foi ajustada para elas, e o teste foi rodado uma única vez. Para rodar: `python avaliar_planilha.py dados/testes_novos.csv`.
   **Resultado em 26/11/2026: 5 de 5 golpes com risco médio ou alto e 5 de 5 mensagens normais com risco baixo.** É uma amostra pequena: mostra que o app não foi ajustado só para a nossa base, mas não é uma taxa de acerto definitiva. O detalhe fica em `dados/resultados_testes_novos.csv`.
-- **Testes com pessoas de fora da equipe:** pelo menos 16 pessoas usaram o app, e 8 deram retorno. Maria Clara aplicou um questionário, com 3 respostas, e Emanuel ouviu as outras 5 pessoas pessoalmente, em conversa, sem registro escrito. Das 8, 7 disseram que confiam no resultado e 1 respondeu "talvez". Duas frases do questionário, sobre a IA: "foi clara e objetiva, apontando diretamente o que tornava a mensagem suspeita" e "esclarece o grau de risco e ainda informa o motivo disso". A sugestão foi citar as fontes das informações e dar links para a pessoa saber mais. Hoje, quando o risco é médio ou alto, o laudo traz a orientação oficial com o link da fonte, e a consulta da idade do site traz o link do registro oficial. Uma fonte com link em cada sinal fica para os próximos passos. É uma amostra pequena, e testar com mais pessoas, principalmente idosas, também é um próximo passo.
+- **Testes com pessoas de fora da equipe:** pelo menos 17 pessoas usaram o app, e 9 deram retorno. Maria Clara aplicou um questionário, com 3 respostas, e Emanuel ouviu as outras 6 pessoas pessoalmente, em conversa, sem registro escrito. Das 9, 8 disseram que confiam no resultado e 1 respondeu "talvez". Uma pessoa idosa disse que o resultado é confiável, mas achou difícil entrar no site, escrever e clicar para analisar. Isso confirma por que, para esse público, o canal é o WhatsApp: basta encaminhar a mensagem, sem copiar, colar nem escrever. Duas frases do questionário, sobre a IA: "foi clara e objetiva, apontando diretamente o que tornava a mensagem suspeita" e "esclarece o grau de risco e ainda informa o motivo disso". A sugestão foi citar as fontes das informações e dar links para a pessoa saber mais. Hoje, quando o risco é médio ou alto, o laudo traz a orientação oficial com o link da fonte, e a consulta da idade do site traz o link do registro oficial. Uma fonte com link em cada sinal fica para os próximos passos. É uma amostra pequena, e testar com mais pessoas, principalmente idosas, também é um próximo passo.
 - **Teste rápido** (`testes_golpes.py`): um golpe de cada um dos 8 tipos mais relatados e 4 mensagens normais. Resultado: 12 de 12.
 
 Transparência: as regras foram ajustadas durante o desenvolvimento usando a base da equipe, então ela não é um teste independente. Por isso existe o teste com mensagens novas, acima. Os links da planilha usam terminações reservadas (.invalid, .test, .example), que não existem na internet, e são trocados por .com só na hora da análise, para que a IA não perceba que é um teste.
@@ -249,11 +249,16 @@ Para rodar o servidor do bot: `pip install -r requirements-bot.txt` e `gunicorn 
 
 ## Próximos passos
 
-- Número oficial no WhatsApp, depois da verificação da empresa na Meta
-- Detecção de campanhas: a mesma chave Pix ou telefone em várias mensagens diferentes
-- Classificador próprio em português (BERTimbau) com taxa de acerto medida
+O que planejamos e ainda não deu para fazer durante o hackathon, em ordem de prioridade:
+
+- Número oficial no WhatsApp, aberto a todos, depois da verificação da empresa na Meta
+- Mandar áudio contando o que aconteceu e receber a resposta em áudio, para quem tem dificuldade de ler ou digitar
 - Leitura de print também no WhatsApp
 - Fonte com link em cada sinal do laudo, como sugeriram as pessoas que testaram
+- Onde denunciar: o canal oficial para denunciar o golpe, no próprio laudo
+- Consulta às listas oficiais do Banco Central (instituições autorizadas) e aos alertas da CVM
+- Detecção de campanhas sem guardar as mensagens: a mesma chave Pix ou telefone em várias mensagens diferentes
+- Classificador próprio em português (BERTimbau) com taxa de acerto medida
 - Testes com mais pessoas, principalmente idosas, com a ajuda de centros de convivência
 
 ## Aviso
