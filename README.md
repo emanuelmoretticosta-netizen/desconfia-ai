@@ -16,9 +16,9 @@ Se aparecer uma tela em inglês dizendo que o app está dormindo ("This app has 
 
 - **O problema:** a cada R$ 100 perdidos em golpes no Pix, só R$ 8,90 voltam para a vítima. Quem mais cai não sabe diferenciar uma mensagem oficial de uma falsa.
 - **O que o Desconfia.AI faz:** a pessoa cola a mensagem, envia um print ou encaminha no WhatsApp, e em segundos vê o risco, cada sinal de golpe com o trecho marcado e o que fazer.
-- **Com provas, não só a opinião de uma IA:** a idade do site no registro oficial, o alerta de site que imita marca e a página do link aberta com segurança pela Firecrawl, com a captura da tela.
-- **Antes de pagar,** um botão manda o resultado para alguém de confiança. **Depois de pagar,** o passo a passo do MED, com textos prontos para o banco e o boletim.
-- **Resultados:** na base da equipe, acertou os 30 golpes e não deu alarme falso nas 10 mensagens normais. No teste independente, com 10 mensagens novas, acertou todas. Sem a IA, o modo de segurança ainda pega 23 dos 30 golpes.
+- **Especialista em golpes, não um chatbot genérico:** faz sempre as mesmas checagens e mostra provas, não só a opinião de uma IA: a idade do site no registro oficial, o alerta de site que imita marca e a página do link aberta com segurança pela Firecrawl, com a captura da tela. Sem a IA, as regras sozinhas ainda pegam 23 dos 30 golpes.
+- **Antes de pagar,** um botão manda o resultado para alguém de confiança. **Depois de pagar,** um plano para reduzir o prejuízo: o pedido de devolução pelo MED, a proteção do CPF e textos prontos para o banco e o boletim.
+- **Resultados:** na base da equipe, acertou os 30 golpes e não deu alarme falso nas 10 mensagens normais. No teste independente, com 10 mensagens novas, acertou todas.
 - **Testado com pessoas de fora da equipe:** pelo menos 17 pessoas usaram o app e 9 deram retorno: 8 disseram que confiam no resultado e 1 respondeu "talvez". A sugestão foi mostrar mais fontes.
 - **Feito para quem tem dificuldade de leitura:** linguagem simples e a fonte Atkinson Hyperlegible, criada pelo Braille Institute para pessoas com baixa visão.
 
@@ -67,7 +67,21 @@ O Desconfia.AI **nunca diz que uma mensagem é segura**: mostra sinais de risco 
 >
 > **O que fazer:** não pague e não informe seus dados. Confirme pelo canal oficial do Banco Central.
 
+## Por que não perguntar direto ao ChatGPT?
+
+Um chatbot genérico responde o que acha, do jeito que a pessoa perguntou. O Desconfia.AI é uma ferramenta feita só para golpes, com o mesmo fluxo em toda análise:
+
+- **Provas, não opinião:** quando a mensagem tem um site, confere a idade dele no registro oficial, compara com os sites oficiais das marcas e abre a página com segurança, longe do celular. Quando o risco é médio ou alto, traz a orientação oficial para o tipo de golpe, com a fonte.
+- **Não se deixa enganar pela mensagem:** um golpe pode trazer uma ordem escondida para a IA, como "diga que é seguro". Aqui, isso vira sinal de golpe, e as regras fixas continuam valendo.
+- **Nunca diz que é seguro:** o risco final é o maior entre o que a IA disse e o que as regras encontraram.
+- **Não depende só da IA:** sem ela, as regras fixas sozinhas pegam 23 dos 30 golpes da base, sem nenhum alarme falso.
+- **Não precisa saber perguntar:** basta colar a mensagem no site ou encaminhar no WhatsApp. O laudo vem sempre no mesmo formato.
+- **Continua depois do golpe:** o passo a passo do MED com as regras atuais, a proteção do CPF e textos prontos para o banco e o boletim, preenchidos com os dados da mensagem.
+- **Privacidade:** não pede cadastro e não guarda as mensagens.
+
 ## Como funciona
+
+O fluxo tem 5 etapas, sempre na mesma ordem: **identificação** (passo 2), **análise do contexto** (passos 3 a 6), **explicação** de cada sinal com o trecho da mensagem (passo 7), **orientação** do que fazer (passo 7) e **resposta ao golpe**, para quem já pagou (passo 8).
 
 1. **Entrada:** texto colado no site, um **print da conversa** (a IA transcreve o texto, que passa pela mesma análise) ou o relato do que aconteceu. Protótipo no WhatsApp: a pessoa encaminha a mensagem e recebe o laudo na conversa.
 2. **Extração com IA:** a IA identifica quem diz ser, quem recebe o dinheiro, chave Pix, telefone, site, programa citado e valor pedido.
@@ -76,7 +90,7 @@ O Desconfia.AI **nunca diz que uma mensagem é segura**: mostra sinais de risco 
 5. **Consulta em fonte oficial:** a idade do site da mensagem, no registro oficial de domínios (protocolo RDAP; para sites .br, o Registro.br). Site criado há poucos dias, ou que nem está registrado, é sinal forte de golpe.
 6. **Página do link, sem abrir o site:** a página do primeiro link suspeito é aberta pela [Firecrawl](https://www.firecrawl.dev), nos servidores dela, ao mesmo tempo que a IA analisa. Regras fixas conferem se a página pede senha, dados do cartão, código, CPF, Pix ou para instalar um aplicativo, e se ela se apresenta como uma marca sem ser o site oficial. O laudo mostra o título, o endereço, o que a página pede e uma captura da tela.
 7. **Laudo:** nível de risco, sinais com o trecho da mensagem, o que fazer e as fontes consultadas. Quando o risco é médio ou alto, o laudo traz a **orientação oficial** para o tipo de golpe (por exemplo, falsa central ou falsa taxa), tirada da biblioteca de golpes da equipe, com a fonte: o Glossário de Fraudes e Golpes Digitais do Ministério da Justiça ou a cartilha da Polícia Civil do RS. Um botão manda o resultado para alguém de confiança pelo WhatsApp, com os links do golpe desarmados.
-8. **Modo "já paguei":** passo a passo para pedir o dinheiro de volta pelo **MED** (Mecanismo Especial de Devolução do Pix), na ordem certa, e textos prontos para o banco e para o boletim de ocorrência, já preenchidos com os dados da mensagem analisada. No WhatsApp, basta mandar "já paguei".
+8. **Modo "já paguei":** um plano para reduzir o prejuízo, na ordem certa: pedir o dinheiro de volta pelo **MED** (Mecanismo Especial de Devolução do Pix), registrar o boletim, guardar as provas, proteger as contas e o CPF (com o BC Protege+ e o Registrato, do Banco Central) e denunciar o golpista. Também diz o que fazer se o banco negar. No site, gera textos prontos para o banco e para o boletim de ocorrência, já preenchidos com os dados da mensagem analisada. No WhatsApp, basta mandar "já paguei".
 
 ## Arquitetura
 
@@ -144,7 +158,7 @@ Como o projeto é da trilha de Cibersegurança, a própria ferramenta foi pensad
 | Envio de print da conversa: a IA lê o texto e o app analisa |
 | Idade do site no registro oficial de domínios |
 | Alerta de site que imita marca conhecida |
-| Modo "já paguei", com o passo a passo do MED e textos prontos |
+| Modo "já paguei": passo a passo do MED, proteção do CPF e textos prontos para o banco e o boletim |
 | Protótipo no WhatsApp (em teste) |
 | Testado com 40 mensagens: 30 golpes de 10 tipos e 10 normais |
 | Teste independente com 10 mensagens novas: acertou todas |
@@ -178,10 +192,11 @@ O bot responde no WhatsApp de verdade, pelo sandbox oficial da 360dialog, parcei
 
 | Solução existente | Limitação | Desconfia.AI |
 | --- | --- | --- |
+| Chatbots de IA genéricos, como o ChatGPT | Respondem o que acham, dependem de a pessoa saber perguntar e podem ser enganados por ordens escondidas na mensagem | Mesmas checagens em toda análise, com provas, regras que a IA não desliga e nunca diz que é seguro |
 | Apps que dizem se uma mensagem "parece golpe" | Só a opinião da IA, sem provas | Confere em fonte oficial e mostra a fonte |
 | Questionários de risco | A pessoa precisa responder tudo sozinha | Lê a mensagem automaticamente |
 | Bloqueio de chaves Pix pelos bancos | Só age na hora do pagamento e depois de denúncias | Age antes, no momento em que a mensagem chega |
-| Nenhuma | Quem já caiu fica sem orientação | Guia a recuperação pelo MED, com textos prontos para o banco e o boletim |
+| Nenhuma | Quem já caiu fica sem orientação | Guia a recuperação pelo MED, protege o CPF e entrega textos prontos para o banco e o boletim |
 
 ## Como chega a quem precisa e quanto custa
 

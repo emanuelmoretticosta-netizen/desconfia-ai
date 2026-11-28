@@ -8,7 +8,9 @@
 # - o banco analisa em até 7 dias; se confirmar a fraude, devolve em até 96 horas,
 #   total ou parcialmente, conforme o dinheiro que ainda estiver nas contas do golpista;
 # - desde 2/2/2026 o MED também rastreia as contas para onde o dinheiro foi passado.
-# Fontes: Agência Brasil (set/2026) e InfoMoney/O Globo (nov/2025), links em FONTES.
+# Proteção do CPF: BC Protege+ (bloqueia abertura de contas no nome da pessoa) e Registrato
+# (mostra contas, chaves Pix e empréstimos no nome dela), ambos do Banco Central, grátis com gov.br.
+# Fontes: Agência Brasil (set/2026), InfoMoney/O Globo (nov/2025) e gov.br, links em FONTES.
 
 import re
 from datetime import date
@@ -22,12 +24,15 @@ PASSOS = [
     ("Registre um boletim de ocorrência",
      "Pode ser pela delegacia online do seu estado, sem sair de casa. O Desconfia.AI monta um texto pronto para você usar."),
     ("Guarde as provas",
-     "Comprovante do Pix, prints da conversa, o anúncio ou a mensagem, e os dados de quem recebeu o dinheiro."),
-    ("Proteja suas contas",
-     "Se você passou senha, código ou dados do cartão, troque as senhas e avise o banco na mesma hora."),
-    ("Avise outras pessoas",
+     "O comprovante do Pix (nele aparecem o nome e o banco de quem recebeu), prints da conversa com data "
+     "e hora, o número ou o perfil do golpista e o anúncio ou a mensagem. Isso ajuda o banco a aprovar a devolução."),
+    ("Proteja suas contas e o seu CPF",
+     "Se você passou senha, código ou dados do cartão, troque as senhas e avise o banco na mesma hora. "
+     "Se passou o CPF ou outros dados, ative o BC Protege+, do Banco Central, para ninguém abrir conta no "
+     "seu nome, e confira no Registrato se já abriram contas ou empréstimos. Os dois são grátis, com a sua conta gov.br."),
+    ("Avise outras pessoas e denuncie",
      "Se o golpista usou o nome de um parente ou o seu WhatsApp, avise a família e os contatos para "
-     "ninguém mais cair."),
+     "ninguém mais cair. E denuncie o número ou o perfil do golpista no próprio WhatsApp ou na rede social."),
 ]
 
 DEPOIS = [
@@ -35,6 +40,8 @@ DEPOIS = [
     "Se confirmar a fraude, devolve em até 96 horas, total ou em parte, conforme o dinheiro que "
     "ainda estiver nas contas do golpista.",
     "O MED também segue o caminho do dinheiro quando o golpista passa o valor para outras contas.",
+    "Se o banco negar ou não responder, reclame na ouvidoria do banco e, depois, no Banco Central "
+    "ou no consumidor.gov.br.",
     "Desconfie de quem oferece recuperar o seu dinheiro cobrando uma taxa: é outro golpe.",
 ]
 
@@ -43,6 +50,8 @@ FONTES = [
      "https://agenciabrasil.ebc.com.br/economia/noticia/2026-09/nova-regra-do-pix-amplia-prazo-para-contestar-golpe"),
     ("InfoMoney: passo a passo do novo mecanismo de devolução (nov/2025)",
      "https://www.infomoney.com.br/minhas-financas/pix-veja-passo-a-passo-de-novo-mecanismo-de-devolucao-de-dinheiro-em-caso-de-fraude/"),
+    ("gov.br: BC Protege+",
+     "https://www.gov.br/pt-br/servicos/proteger-se-com-o-bc-protege"),
 ]
 
 PADRAO_JA_PAGUEI = re.compile(

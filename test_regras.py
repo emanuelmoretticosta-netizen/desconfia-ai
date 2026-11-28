@@ -14,7 +14,7 @@ from pathlib import Path
 from analise import (EXEMPLO_ALERTA, EXEMPLO_ENGANAR_IA, EXEMPLO_GOLPE, EXEMPLO_LEGITIMO, checar_regras,
                      juntar_sinais, sites_do_texto, trecho_existe)
 from avaliar_planilha import montar_mensagem
-from ja_paguei import parece_ja_paguei, texto_para_o_banco
+from ja_paguei import parece_ja_paguei, resposta_whatsapp, texto_para_o_banco
 from marcas import imitacoes
 
 PLANILHA = Path(__file__).with_name("dados") / "testes_golpes.csv"
@@ -90,6 +90,8 @@ def test_modo_ja_paguei():
     assert not parece_ja_paguei("URGENTE! Pague a taxa de R$ 49,90 para liberar seu dinheiro. " * 3)
     texto = texto_para_o_banco("R$ 49,90", date(2026, 11, 20), "golpe@exemplo.com", "Paguei uma taxa falsa.")
     assert "MED" in texto and "R$ 49,90" in texto and "20/11/2026" in texto
+    resposta = resposta_whatsapp()
+    assert "BC Protege+" in resposta and "Registrato" in resposta and "ouvidoria" in resposta
 
 
 def test_assinatura_dos_avisos_do_whatsapp(monkeypatch):
